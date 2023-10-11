@@ -39,7 +39,5 @@ public class VerifyTeacherRequest {
     @NotNull
     @Size(min = 1)
     private String university;
-    @NotNull
-    @Size(min = 1)
     private String experience;
 }

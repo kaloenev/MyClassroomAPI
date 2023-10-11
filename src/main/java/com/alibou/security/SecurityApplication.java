@@ -31,14 +31,6 @@ public class SecurityApplication {
 					.build();
 			System.out.println("Admin token: " + service.register(admin).getAccessToken());
 
-			var manager = RegisterRequest.builder()
-					.username("Admin")
-					.email("manager@mail.com")
-					.password("password")
-					.role(MANAGER)
-					.build();
-			System.out.println("Manager token: " + service.register(manager).getAccessToken());
-
 		};
 	}
 }

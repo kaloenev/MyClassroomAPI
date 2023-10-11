@@ -39,8 +39,10 @@ public class TeacherResponse {
         this.numberOfReviews = teacher.getNumberOfReviews();
         this.rating = teacher.getRating();
         this.specialties = teacher.getSpecialties();
+        this.description = teacher.getDescription();
         this.firstName = teacher.getFirstname();
         this.secondName = teacher.getLastname();
         this.reviews = reviewResponses;
+        this.experience = teacher.getExperience();
     }
 }

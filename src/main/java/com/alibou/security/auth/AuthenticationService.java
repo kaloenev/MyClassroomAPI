@@ -18,6 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,7 +43,9 @@ public class AuthenticationService {
   public AuthenticationResponse register(RegisterRequest request) throws CustomException {
     String jwtToken;
     String refreshToken;
-    if (!(request.getRole().equals(Role.STUDENT) || request.getRole().equals(Role.TEACHER))) throw new CustomException(HttpStatus.BAD_REQUEST, "Incorrect role");
+    if (!(request.getRole().equals(Role.STUDENT) || request.getRole().equals(Role.TEACHER)
+            || request.getRole().equals(Role.ADMIN))) throw new CustomException(HttpStatus.BAD_REQUEST, "Incorrect role");
+
     if (!request.getEmail().contains("@")) throw new CustomException(HttpStatus.BAD_REQUEST, "Not a valid email");
 
     if (request.getRole().equals(Role.STUDENT)) {
@@ -53,7 +58,7 @@ public class AuthenticationService {
       var savedUser = studentRepository.save(user);
       jwtToken = jwtService.generateToken(user);
       refreshToken = jwtService.generateRefreshToken(user);
-      saveUserToken(savedUser, jwtToken);
+      saveUserToken(savedUser, jwtToken, false, Timestamp.valueOf(LocalDateTime.now()));
     }
     else {
       var user = Teacher.builder()
@@ -65,7 +70,7 @@ public class AuthenticationService {
       var savedUser = teacherRepository.save(user);
       jwtToken = jwtService.generateToken(user);
       refreshToken = jwtService.generateRefreshToken(user);
-      saveUserToken(savedUser, jwtToken);
+      saveUserToken(savedUser, jwtToken, false, Timestamp.valueOf(LocalDateTime.now()));
     }
     return AuthenticationResponse.builder()
         .accessToken(jwtToken)
@@ -73,7 +78,7 @@ public class AuthenticationService {
         .build();
   }
 
-  public String emailResetToken(String email) throws CustomException {
+  public String getEmailResetToken(String email) throws CustomException {
     Optional<User> user = repository.findByEmail(email);
     if (user.isEmpty()) {
       throw new CustomException(HttpStatus.NOT_FOUND, "Няма регистриран потребител с този имейл");
@@ -129,18 +134,20 @@ public class AuthenticationService {
     var jwtToken = jwtService.generateToken(user);
     var refreshToken = jwtService.generateRefreshToken(user);
     revokeAllUserTokens(user);
-    saveUserToken(user, jwtToken);
+    saveUserToken(user, jwtToken, request.isRememberMe(), Timestamp.valueOf(LocalDateTime.now()));
     return AuthenticationResponse.builder()
         .accessToken(jwtToken)
             .refreshToken(refreshToken)
         .build();
   }
 
-  private void saveUserToken(User user, String jwtToken) {
+  private void saveUserToken(User user, String jwtToken, boolean rememberMe, Timestamp timestamp) {
     var token = Token.builder()
         .user(user)
         .token(jwtToken)
         .tokenType(TokenType.BEARER)
+            .rememberMe(rememberMe)
+            .timestamp(timestamp)
         .expired(false)
         .revoked(false)
         .build();
@@ -176,7 +183,7 @@ public class AuthenticationService {
       if (jwtService.isTokenValid(refreshToken, user)) {
         var accessToken = jwtService.generateToken(user);
         revokeAllUserTokens(user);
-        saveUserToken(user, accessToken);
+        saveUserToken(user, accessToken, false, Timestamp.valueOf(LocalDateTime.now()));
         var authResponse = AuthenticationResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)

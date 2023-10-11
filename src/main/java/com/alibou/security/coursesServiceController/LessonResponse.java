@@ -54,6 +54,8 @@ public class LessonResponse {
     private String teacherName;
     private String teacherSurname;
 
+    private TeacherResponse teacherResponse;
+
 
 
     public LessonResponse(Lesson lesson, String dateTime) {

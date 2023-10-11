@@ -28,16 +28,54 @@ public class UserController {
     }
 
     @PostMapping("/verifyTeacher")
-    public ResponseEntity<Object> verifyTeacher(@RequestParam("file") MultipartFile requestFile,
-            @RequestBody VerifyTeacherRequest request, javax.servlet.http.HttpServletRequest httpRequest) {
+    public ResponseEntity<Object> verifyTeacher(@RequestBody VerifyTeacherRequest request,
+                                                javax.servlet.http.HttpServletRequest httpRequest) {
+        int teacherId;
         try {
-        userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
-                requestFile, request.getGender(), request.getCity(), request.getDescription(), request.getSpecialties(),
+        teacherId = userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
+                request.getGender(), request.getCity(), request.getDescription(), request.getSpecialties(),
                 request.getDegree(), request.getSchool(), request.getUniversity(), request.getExperience());
             } catch (IOException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
             } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+
+        return ResponseEntity.ok(teacherId);
+    }
+
+    @PostMapping("/setTeacherImage/{id}")
+    public ResponseEntity<Object> setTeacherImage(@RequestParam("file") MultipartFile requestFile,
+                                                  javax.servlet.http.HttpServletRequest httpRequest, @PathVariable int id) {
+        try {
+            userService.saveTeacherImage(httpRequest.getHeader("Authorization"), id, requestFile);
+        } catch (IOException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/setStudentImage/id={id}&image={imageId} ")
+    public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile requestFile, @PathVariable int imageId,
+                                                  javax.servlet.http.HttpServletRequest httpRequest, @PathVariable int id) {
+        try {
+            if (imageId > 0 && imageId < 5) {
+                userService.saveStudentDefaultImage(httpRequest.getHeader("Authorization"), imageId);
+            }
+            else userService.saveStudentImage(httpRequest.getHeader("Authorization"), id, requestFile);
+        } catch (IOException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        } catch (CustomException e) {
             e.printStackTrace();
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

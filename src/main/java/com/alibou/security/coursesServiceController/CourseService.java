@@ -516,4 +516,31 @@ public class CourseService {
         }
         return reviewResponses;
     }
+
+    public LessonResponse getCoursePage(int lessonId) throws CustomException {
+        Lesson lesson = lessonRepository.getLessonByLessonID(lessonId);
+        LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getReviews(), "url1", "url2");
+        Teacher teacher = lesson.getTeacher();
+        TeacherResponse teacherResponse = new TeacherResponse(teacher, "url");
+        teacherResponse.setDescription(teacher.getDescription());
+        teacherResponse.setExperience(teacherResponse.getExperience());
+        lessonResponse.setTeacherResponse(teacherResponse);
+        return lessonResponse;
+    }
+
+    public LessonResponse getLessonPage(int lessonId) throws CustomException {
+        Lesson lesson = lessonRepository.getLessonByLessonID(lessonId);
+        List<String> termins = new ArrayList<>();
+        for (Termin termin : lesson.getTermins()) {
+            termins.add(termin.getDateTime().toString());
+        }
+        LessonResponse lessonResponse = new LessonResponse(lesson, termins, lesson.getReviews(),
+                "url1", "url2");
+        Teacher teacher = lesson.getTeacher();
+        TeacherResponse teacherResponse = new TeacherResponse(teacher, "url");
+        teacherResponse.setDescription(teacher.getDescription());
+        teacherResponse.setExperience(teacherResponse.getExperience());
+        lessonResponse.setTeacherResponse(teacherResponse);
+        return lessonResponse;
+    }
 }

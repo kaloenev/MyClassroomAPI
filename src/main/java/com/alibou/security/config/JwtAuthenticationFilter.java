@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.beans.Transient;
 import java.io.IOException;
 import java.security.Security;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 import jakarta.transaction.TransactionScoped;
 import jakarta.transaction.Transactional;
@@ -29,6 +31,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtService jwtService;
   private final UserDetailsService userDetailsService;
   private final TokenRepository tokenRepository;
+
+  private static final int timeWithoutRemember = 1800000;
+
+  private static final int timeWithRemember = 259200000;
 
   @Override
   protected void doFilterInternal(
@@ -51,9 +57,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     userEmail = jwtService.extractUsername(jwt);
     if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
       UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-      var isTokenValid = tokenRepository.findByToken(jwt)
-          .map(t -> !t.isExpired() && !t.isRevoked())
-          .orElse(false);
+      var databaseToken = tokenRepository.findByToken(jwt).get();
+      long lastLogin = LocalDateTime.now().getNano() - databaseToken.getTimestamp().getTime();
+      boolean validTimestamp = (!databaseToken.rememberMe && (timeWithoutRemember - lastLogin > 0))
+              || (databaseToken.rememberMe && (timeWithRemember - lastLogin > 0));
+
+      boolean isTokenValid = (!databaseToken.isExpired() || !databaseToken.isRevoked()) && validTimestamp;
       if (jwtService.isTokenValid(jwt, userDetails) && Boolean.TRUE.equals(isTokenValid)) {
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
             userDetails,
@@ -65,6 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
         SecurityContextHolder.getContext().setAuthentication(authToken);
       }
+      databaseToken.setTimestamp(Timestamp.valueOf(LocalDateTime.now()));
     }
     filterChain.doFilter(request, response);
   }

@@ -55,7 +55,7 @@ public class AuthenticationController {
   public ResponseEntity<Object> resetPassword(@PathVariable String email) {
     String link;
     try {
-      link = service.emailResetToken(email);
+      link = service.getEmailResetToken(email);
     }
     catch (CustomException e) {
       e.printStackTrace();

@@ -1,6 +1,7 @@
 package com.alibou.security.emailing;
 
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
@@ -17,6 +18,7 @@ import java.util.Objects;
 // Implementing EmailService interface
 public class EmailServiceImpl implements EmailService {
 
+    @Autowired
     private JavaMailSender javaMailSender;
 
     @Value("${spring.mail.username}") private String sender;

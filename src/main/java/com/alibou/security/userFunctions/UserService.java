@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class UserService {
         }
     }
 
-    public void verifyTeacher(String token, String name, String surname, MultipartFile requestFile, Gender gender, City city,
+    public int verifyTeacher(String token, String name, String surname, Gender gender, City city,
                               String description, String specialties, Degree degree, String school, String university,
                               String experience) throws IOException, CustomException {
         var jwt = tokenRepository.findByToken(token);
@@ -119,12 +120,6 @@ public class UserService {
         Teacher teacher = (Teacher) jwt.get().getUser();
         teacher.setFirstname(name);
         teacher.setLastname(surname);
-
-        String fileName = "image_" + teacher.getId();
-        File newFile = new File(fileName);
-        requestFile.transferTo(newFile);
-        teacher.setPictureLocation(fileName);
-
         teacher.setGender(gender);
         teacher.setCity(city);
         teacher.setDescription(description);
@@ -139,6 +134,39 @@ public class UserService {
         emailDetails.setSubject("Teacher experience verification for: " + teacher.getId());
         emailDetails.setMsgBody(experience);
         emailService.sendSimpleMail(emailDetails);
+        return teacher.getId();
+    }
+
+    public void saveTeacherImage(String token, int id, MultipartFile requestFile) throws IOException, CustomException {
+        var jwt = tokenRepository.findByToken(token);
+        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
+        Teacher teacher = (Teacher) jwt.get().getUser();
+        String fileName = "image_" + id;
+        File newFile = new File(fileName);
+        requestFile.transferTo(newFile);
+        newFile.getParentFile().mkdirs();
+        if (!newFile.createNewFile()) throw new CustomException(HttpStatus.BAD_REQUEST, "Could not create file");
+        teacher.setPictureLocation(fileName);
+    }
+
+    public void saveStudentImage(String token, int id, MultipartFile requestFile) throws CustomException, IOException {
+        var jwt = tokenRepository.findByToken(token);
+        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
+        Student student = (Student) jwt.get().getUser();
+        String fileName = "image_" + id;
+        File newFile = new File(fileName);
+        requestFile.transferTo(newFile);
+        newFile.getParentFile().mkdirs();
+        if (!newFile.createNewFile()) throw new CustomException(HttpStatus.BAD_REQUEST, "Could not create file");
+        student.setPictureLocation(fileName);
+    }
+
+    public void saveStudentDefaultImage(String token, int imageId) throws CustomException {
+        var jwt = tokenRepository.findByToken(token);
+        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
+        Student student = (Student) jwt.get().getUser();
+        String fileName = "image_default_" + imageId;
+        student.setPictureLocation(fileName);
     }
 
     public void verifyTeacherExperience(int id, String experience) {
