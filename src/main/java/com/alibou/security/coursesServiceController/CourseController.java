@@ -89,7 +89,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getHomePageInfo());
     }
 
-    @PostMapping("/getFilteredCourses")
+    @PostMapping("/getFilteredClasses")
     public ResponseEntity<Object> getFilteredCourses(@RequestBody FilterRequest filterRequest) {
         try {
             return ResponseEntity.ok(courseService.getFilteredLessons(filterRequest));
@@ -97,18 +97,6 @@ public class CourseController {
         CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
         return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-    }
-
-    @PostMapping("/getFilteredLessons")
-    public ResponseEntity<Object> getFilteredLessons(@RequestBody FilterRequest filterRequest) {
-        List<LessonResponse> lessons;
-        try {
-            lessons = courseService.getFilteredLessons(filterRequest);
-        } catch (IllegalArgumentException e) {
-        CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-        return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-        }
-        return ResponseEntity.ok(lessons);
     }
 
     @GetMapping("/getFilters")
