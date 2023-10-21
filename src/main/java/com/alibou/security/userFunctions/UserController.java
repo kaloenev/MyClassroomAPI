@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 @RestController
@@ -29,7 +29,7 @@ public class UserController {
 
     @PostMapping("/verifyTeacher")
     public ResponseEntity<Object> verifyTeacher(@RequestBody VerifyTeacherRequest request,
-                                                javax.servlet.http.HttpServletRequest httpRequest) {
+                                                HttpServletRequest httpRequest) {
         int teacherId;
         try {
         teacherId = userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
@@ -49,7 +49,7 @@ public class UserController {
 
     @PostMapping("/setTeacherImage/{id}")
     public ResponseEntity<Object> setTeacherImage(@RequestParam("file") MultipartFile requestFile,
-                                                  javax.servlet.http.HttpServletRequest httpRequest, @PathVariable int id) {
+                                                  HttpServletRequest httpRequest, @PathVariable int id) {
         try {
             userService.saveTeacherImage(httpRequest.getHeader("Authorization"), id, requestFile);
         } catch (IOException e) {
@@ -66,7 +66,7 @@ public class UserController {
 
     @PostMapping("/setStudentImage/id={id}&image={imageId} ")
     public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile requestFile, @PathVariable int imageId,
-                                                  javax.servlet.http.HttpServletRequest httpRequest, @PathVariable int id) {
+                                                  HttpServletRequest httpRequest, @PathVariable int id) {
         try {
             if (imageId > 0 && imageId < 5) {
                 userService.saveStudentDefaultImage(httpRequest.getHeader("Authorization"), imageId);
