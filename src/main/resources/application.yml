@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/jwt_security
-    username: username
-    password: password
+    url: jdbc:sqlserver://myclassroombackend.database.windows.net:1433;database=myClassroom;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+    username: myClassroom@myclassroombackend
+    password: educationPlatform12345
   jpa:
     show-sql: false
     hibernate:
