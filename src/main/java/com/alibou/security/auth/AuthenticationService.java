@@ -50,7 +50,7 @@ public class AuthenticationService {
 
     if (request.getRole().equals(Role.STUDENT)) {
       var user = Student.builder()
-              .firstname(request.getUsername())
+              .username(request.getUsername())
               .email(request.getEmail())
               .password(passwordEncoder.encode(request.getPassword()))
               .role(request.getRole())
@@ -62,10 +62,11 @@ public class AuthenticationService {
     }
     else {
       var user = Teacher.builder()
-              .firstname(request.getUsername())
+              .username(request.getUsername())
               .email(request.getEmail())
               .password(passwordEncoder.encode(request.getPassword()))
               .role(request.getRole())
+              .isEnabled(true)
               .build();
       var savedUser = teacherRepository.save(user);
       jwtToken = jwtService.generateToken(user);

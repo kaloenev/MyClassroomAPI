@@ -21,8 +21,8 @@ import java.util.Random;
 @SuperBuilder
 public class Teacher extends User {
     private Timestamp timeOfVerificationRequest;
-    private boolean isVerified = false;
-    private boolean isEnabled = false;
+    private boolean isVerified = true;
+    private boolean isEnabled = true;
     private int numberOfReviews;
     private double rating;
     private String description;

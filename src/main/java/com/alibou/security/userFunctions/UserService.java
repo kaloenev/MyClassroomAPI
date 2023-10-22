@@ -115,9 +115,7 @@ public class UserService {
     public int verifyTeacher(String token, String name, String surname, Gender gender, City city,
                               String description, String specialties, Degree degree, String school, String university,
                               String experience) throws IOException, CustomException {
-        var jwt = tokenRepository.findByToken(token);
-        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        Teacher teacher = (Teacher) jwt.get().getUser();
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         teacher.setFirstname(name);
         teacher.setLastname(surname);
         teacher.setGender(gender);
@@ -128,6 +126,7 @@ public class UserService {
         teacher.setSchool(school);
         teacher.setUniversity(university);
         teacher.verifyAccount();
+        teacherRepository.save(teacher);
 
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setRecipient("kaloyan.enev@gmail.com");
