@@ -4,6 +4,7 @@ import com.alibou.security.lessons.Lesson;
 import com.alibou.security.token.Token;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.Hibernate;
@@ -27,20 +28,28 @@ public class User implements UserDetails {
   @Id
   @GeneratedValue
   protected Integer id;
+  @Column(columnDefinition = "nvarchar")
+  @Size(min = 1, max = 64)
   protected String firstname;
+  @Column(columnDefinition = "nvarchar")
+  @Size(min = 1, max = 64)
   protected String lastname;
-  @Column(unique = true)
+  @Column(columnDefinition = "nvarchar", unique = true)
+  @Size(min = 3, max = 64)
   protected String username;
   protected String resetToken;
   protected String pictureLocation;
   @Enumerated(EnumType.STRING)
+  @Column(columnDefinition = "nvarchar")
   protected Gender gender;
   @Enumerated(EnumType.STRING)
   protected NotificationMode notificationMode;
   @NotNull
-  @Column(unique = true)
+  @Column(unique = true, nullable = false)
+  @Size(min = 3, max = 254)
   protected String email;
   @NotNull
+  @Column(nullable = false)
   protected String password;
 
   @Enumerated(EnumType.STRING)

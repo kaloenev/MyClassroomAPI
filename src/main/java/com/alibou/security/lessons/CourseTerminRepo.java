@@ -1,5 +1,6 @@
 package com.alibou.security.lessons;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,11 +21,17 @@ public interface CourseTerminRepo extends JpaRepository<CourseTermin, Integer> {
 
     @Query("""
             select distinct c.lesson from CourseTermin c
-            where (c.lesson.title = :searchTerm or c.lesson.teacher.firstname = :searchTerm2 
-            or c.lesson.teacher.lastname = :searchTerm3) and c.lesson.subject = :subject and c.lesson.isDraft = :isDraft 
-            and c.lesson.grade = :grade and c.lesson.price between :priceLowerBound and :priceUpperBound and c.courseHoursNumber 
-            between :hoursLowerBound and :hoursUpperBound and c.dateTime between :lowerBound and :upperBound and c.isFull = :isFull""")
-    List<Lesson> getFilteredCourseTermins(@Param("searchTerm") String searchTerm, @Param("searchTerm2") String searchTerm2,
+                where ((:searchTerm is null or c.lesson.title = :searchTerm)
+                or (:searchTerm2 is null or c.lesson.teacher.firstname = :searchTerm2)
+                or (:searchTerm3 is null or c.lesson.teacher.lastname = :searchTerm3))
+                and (:subject is null or c.lesson.subject = :subject)
+                and c.lesson.isDraft = :isDraft
+                and (:grade is null or c.lesson.grade = :grade)
+                and (c.lesson.price between :priceLowerBound and :priceUpperBound)
+                and (c.courseHoursNumber between :hoursLowerBound and :hoursUpperBound)
+                and (c.dateTime between :lowerBound and :upperBound)
+                and c.isFull = :isFull""")
+    Page<Lesson> getFilteredCourseTermins(@Param("searchTerm") String searchTerm, @Param("searchTerm2") String searchTerm2,
                                           @Param("searchTerm3") String searchTerm3, @Param("subject") String subject,
                                           @Param("isDraft") boolean isDraft, @Param("grade") String grade,
                                           @Param("priceLowerBound") double priceLowerBound,

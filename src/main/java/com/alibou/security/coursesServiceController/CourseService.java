@@ -6,6 +6,7 @@ import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.EnumUtils;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -31,6 +32,8 @@ public class CourseService {
     private final LessonTerminRepo lessonTerminRepo;
 
     private final CourseTerminRepo courseTerminRepo;
+
+    private final TeacherRepository teacherRepository;
 
     private final ReviewRepo reviewRepo;
 
@@ -77,22 +80,20 @@ public class CourseService {
     }
 
     public void createCourse(String token, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        Teacher teacher = (Teacher) token1.get().getUser();
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         Lesson lesson = Lesson.builder().teacher(teacher).build();
         lesson.setTitle(courseRequest.getTitle());
         lesson.setSubject(courseRequest.getSubject());
         lesson.setGrade(courseRequest.getGrade());
         lesson.setDescription(courseRequest.getDescription());
         lesson.setLength(courseRequest.getLength());
-        lesson.setImageLocation(courseRequest.getImageLocation());
         lesson.setPrivateLesson(isPrivateLesson);
         lesson.setPrice(courseRequest.getPrice());
         lesson.setDraft(isDraft);
         if (!isPrivateLesson) {
             lesson.setThemas(courseRequest.getThemas());
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
+            lessonRepository.save(lesson);
             for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
                 CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()))
                         .courseDays(courseTerminRequest.getCourseDays()).courseHours(courseTerminRequest.getCourseHours())
@@ -104,6 +105,7 @@ public class CourseService {
             }
         } else {
             lesson.setStudentsUpperBound(1);
+            lessonRepository.save(lesson);
             for (String privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
                 String hours = privateLessonTermin.substring(privateLessonTermin.length() - 9);
                 LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
@@ -128,7 +130,6 @@ public class CourseService {
         lesson.setGrade(courseRequest.getGrade());
         lesson.setDescription(courseRequest.getDescription());
         lesson.setLength(courseRequest.getLength());
-        lesson.setImageLocation(courseRequest.getImageLocation());
         lesson.setPrivateLesson(isPrivateLesson);
         lesson.setPrice(courseRequest.getPrice());
         lesson.setDraft(isDraft);
@@ -214,26 +215,23 @@ public class CourseService {
 
     public List<LessonResponse> getFilteredLessons(FilterRequest request) throws IllegalArgumentException {
         List<LessonResponse> lessonResponses = new ArrayList<>();
-        Pageable sortedAndPaged;
+        Pageable sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12);
+        String sort;
         switch (request.getSort()) {
-            case "Най-популярни" ->
-                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("popularity").descending());
-            case "Най-скъпи" ->
-                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson_price").descending());
             case "Най-евтини" ->
-                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson_price").ascending());
+                    sort = "c.lesson.price";
             case "Най-висок рейтинг" ->
-                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson_rating").descending());
+                    sort = "c.lesson.rating";
             case "Най-скоро започващи" ->
-                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("dateTime").ascending());
+                    sort = "c.dateTime";
             default ->
-                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("popularity").descending());
+                    sort = "c.lesson.popularity";
         }
         if (request.getPriceLowerBound() >= 0 && request.getPriceUpperBound() == 0) {
             request.setPriceUpperBound(10000);
             request.setPriceLowerBound(0);
         }
-        List<Lesson> lessons;
+        Page<Lesson> lessons;
         if (request.isPrivateLesson()) {
             lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                     request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),

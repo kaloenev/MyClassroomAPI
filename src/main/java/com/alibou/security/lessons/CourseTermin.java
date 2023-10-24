@@ -19,6 +19,7 @@ import java.util.List;
 @SuperBuilder
 public class CourseTermin extends Termin{
     private int weekLength;
+    @Column(columnDefinition = "nvarchar")
     private String courseDays;
     private String courseHours;
     private int courseHoursNumber;

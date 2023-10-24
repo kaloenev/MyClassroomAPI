@@ -27,10 +27,14 @@ public class Lesson {
     @Id
     @GeneratedValue
     private Integer lessonID;
+    @Column(columnDefinition = "nvarchar")
     private String title;
+    @Column(columnDefinition = "nvarchar")
     private String description;
     private String imageLocation;
+    @Column(columnDefinition = "nvarchar")
     private String grade;
+    @Column(columnDefinition = "nvarchar")
     private String subject;
     private String advantages;
     private boolean isPrivateLesson;
@@ -38,6 +42,7 @@ public class Lesson {
     private double price;
     private int length;
     private int studentsUpperBound;
+    @Column(columnDefinition = "nvarchar")
     private String themas;
     private double rating;
     private int numberOfReviews = 0;
@@ -46,7 +51,7 @@ public class Lesson {
     @OneToMany(mappedBy = "lesson")
     @ToString.Exclude
     @OrderColumn
-    private List<Termin> termins;
+    private List<Termin> termins = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
@@ -63,6 +68,9 @@ public class Lesson {
     private Student isLikedByStudent;
 
     public void addTermin(Termin termin) {
+        if (this.termins == null) {
+            termins = new ArrayList<>();
+        }
         termins.add(termin);
     }
 

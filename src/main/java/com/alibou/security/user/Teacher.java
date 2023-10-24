@@ -25,14 +25,21 @@ public class Teacher extends User {
     private boolean isEnabled = true;
     private int numberOfReviews;
     private double rating;
+    @Column(columnDefinition = "nvarchar")
     private String description;
+    @Column(columnDefinition = "nvarchar")
     private String specialties;
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "nvarchar")
     private City city;
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "nvarchar")
     private Degree degree;
+    @Column(columnDefinition = "nvarchar")
     private String school;
+    @Column(columnDefinition = "nvarchar")
     private String university;
+    @Column(columnDefinition = "nvarchar")
     private String experience;
     @OneToMany(mappedBy = "teacher")
     @ToString.Exclude
