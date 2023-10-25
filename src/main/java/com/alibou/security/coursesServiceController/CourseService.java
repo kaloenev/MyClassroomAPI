@@ -81,6 +81,7 @@ public class CourseService {
 
     public void createCourse(String token, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        System.out.println(teacher.getId());
         Lesson lesson = Lesson.builder().teacher(teacher).build();
         lesson.setTitle(courseRequest.getTitle());
         lesson.setSubject(courseRequest.getSubject());
@@ -107,7 +108,7 @@ public class CourseService {
             lesson.setStudentsUpperBound(1);
             lessonRepository.save(lesson);
             for (String privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                String hours = privateLessonTermin.substring(privateLessonTermin.length() - 9);
+                String hours = privateLessonTermin.substring(privateLessonTermin.length() - 8);
                 LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                         .dateTime(Timestamp.valueOf(privateLessonTermin)).build();
                 lessonTerminRepo.save(lessonTermin);
@@ -117,6 +118,7 @@ public class CourseService {
         }
         lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
         lessonRepository.save(lesson);
+        System.out.println(teacher.getId());
         teacher.addLesson(lesson);
     }
 

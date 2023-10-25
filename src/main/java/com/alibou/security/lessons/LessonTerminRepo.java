@@ -19,11 +19,17 @@ public interface LessonTerminRepo extends JpaRepository<LessonTermin, Integer> {
     List<Lesson> getPrivateLessonsByTeacherID(@Param("teacherID") int teacherID);
 
     @Query("""
-            select distinct l.lesson from LessonTermin l
-            where (l.lesson.title = :searchTerm or l.lesson.teacher.firstname = :searchTerm2
-            or l.lesson.teacher.lastname = :searchTerm3) and l.lesson.subject = :subject and l.lesson.isDraft = :isDraft
-            and l.lesson.grade = :grade and l.lesson.price between :priceLowerBound and :priceUpperBound and l.lessonHours
-            between :hoursLowerBound and :hoursUpperBound and l.dateTime between :lowerBound and :upperBound and l.isFull = :isFull""")
+            select distinct c.lesson from LessonTermin c
+                where ((:searchTerm is null or c.lesson.title = :searchTerm)
+                or (:searchTerm2 is null or c.lesson.teacher.firstname = :searchTerm2)
+                or (:searchTerm3 is null or c.lesson.teacher.lastname = :searchTerm3))
+                and (:subject is null or c.lesson.subject = :subject)
+                and c.lesson.isDraft = :isDraft
+                and (:grade is null or c.lesson.grade = :grade)
+                and (c.lesson.price between :priceLowerBound and :priceUpperBound)
+                and (c.lessonHours between :hoursLowerBound and :hoursUpperBound)
+                and (c.dateTime between :lowerBound and :upperBound)
+                and c.isFull = :isFull""")
     Page<Lesson> getFilteredLessonTermins(@Param("searchTerm") String searchTerm, @Param("searchTerm2") String searchTerm2,
                                           @Param("searchTerm3") String searchTerm3, @Param("subject") String subject,
                                           @Param("isDraft") boolean isDraft, @Param("grade") String grade,
