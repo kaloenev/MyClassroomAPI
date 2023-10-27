@@ -191,7 +191,7 @@ public class CourseService {
     }
 
     public HomePageResponse getHomePageInfo() {
-        List<Lesson> lessons = lessonRepository.findFirst9ByOrderByPopularityDesc();
+        List<Lesson> lessons = lessonRepository.findFirstDistinct9ByOrderByPopularityDesc();
         // Add file reader and links to the courses
         HomePageResponse homePageResponse = new HomePageResponse();
 
@@ -201,7 +201,7 @@ public class CourseService {
         }
 
         List<ReviewResponse> reviewResponses = new ArrayList<>();
-        for (Review review : reviewRepo.findTop3ByOrderByRatingDescMessageDesc()) {
+        for (Review review : reviewRepo.findTopDistinct3ByOrderByRatingDescMessageDesc()) {
             ReviewResponse reviewResponse = new ReviewResponse(review);
             reviewResponses.add(reviewResponse);
         }

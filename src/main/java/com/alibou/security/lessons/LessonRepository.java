@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     Lesson getLessonByLessonID(int id);
-    List<Lesson> findFirst9ByOrderByPopularityDesc();
+    List<Lesson> findFirstDistinct9ByOrderByPopularityDesc();
 
     List<Lesson> getLessonByisLikedByStudent_id(int studentID, Pageable pageable);
 }

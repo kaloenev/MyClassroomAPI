@@ -31,6 +31,8 @@ public class UserService {
 
     private final TeacherRepository teacherRepository;
 
+    private final StudentRepository studentRepository;
+
     private final EmailService emailService;
 
     public void sendMessage(String token, String content, int receiverID) throws CustomException {
@@ -131,40 +133,32 @@ public class UserService {
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setRecipient("kaloyan.enev@gmail.com");
         emailDetails.setSubject("Teacher experience verification for: " + teacher.getId());
-        emailDetails.setMsgBody(experience);
+        emailDetails.setMsgBody(experience + "\n Teacher email:" + teacher.getEmail());
         emailService.sendSimpleMail(emailDetails);
         return teacher.getId();
     }
 
     public void saveTeacherImage(String token, int id, MultipartFile requestFile) throws IOException, CustomException {
-        var jwt = tokenRepository.findByToken(token);
-        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        Teacher teacher = (Teacher) jwt.get().getUser();
-        String fileName = "image_" + id;
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        String fileName = "image_user" + id;
         File newFile = new File(fileName);
         requestFile.transferTo(newFile);
-        newFile.getParentFile().mkdirs();
         if (!newFile.createNewFile()) throw new CustomException(HttpStatus.BAD_REQUEST, "Could not create file");
         teacher.setPictureLocation(fileName);
     }
 
     public void saveStudentImage(String token, int id, MultipartFile requestFile) throws CustomException, IOException {
-        var jwt = tokenRepository.findByToken(token);
-        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        Student student = (Student) jwt.get().getUser();
-        String fileName = "image_" + id;
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        String fileName = "image_user_" + id;
         File newFile = new File(fileName);
         requestFile.transferTo(newFile);
-        newFile.getParentFile().mkdirs();
         if (!newFile.createNewFile()) throw new CustomException(HttpStatus.BAD_REQUEST, "Could not create file");
         student.setPictureLocation(fileName);
     }
 
     public void saveStudentDefaultImage(String token, int imageId) throws CustomException {
-        var jwt = tokenRepository.findByToken(token);
-        if (jwt.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        Student student = (Student) jwt.get().getUser();
-        String fileName = "image_default_" + imageId;
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        String fileName = "image_user_default_" + imageId;
         student.setPictureLocation(fileName);
     }
 
