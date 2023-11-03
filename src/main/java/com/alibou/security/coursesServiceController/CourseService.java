@@ -217,14 +217,16 @@ public class CourseService {
         terminRepo.deleteById(terminID);
     }
 
-    public HomePageResponse getHomePageInfo() {
+    public HomePageResponse getHomePageInfo() throws CustomException {
         List<Lesson> lessons = lessonRepository.getDistinct9ByOrderByPopularityDesc();
         // Add file reader and links to the courses
         HomePageResponse homePageResponse = new HomePageResponse();
 
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
-            lessonResponses.add(new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime()));
+            LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime());
+            if (!lesson.isPrivateLesson()) lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
+            lessonResponses.add(lessonResponse);
         }
 
         List<ReviewResponse> reviewResponses = new ArrayList<>();

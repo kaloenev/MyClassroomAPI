@@ -87,7 +87,12 @@ public class CourseController {
 
     @GetMapping("/getHomePage")
     public ResponseEntity<Object> getHomePage() {
-        return ResponseEntity.ok(courseService.getHomePageInfo());
+        try {
+            return ResponseEntity.ok(courseService.getHomePageInfo());
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
     }
 
     @PostMapping("/getFilteredClasses")
