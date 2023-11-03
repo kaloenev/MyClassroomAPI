@@ -16,7 +16,7 @@ public class CreateCourseRequest {
     private String subject;
     private String grade;
     private String description;
-    private String themas;
+    private ThemaSimpleResponse[] themas;
     private String imageLocation;
     private int studentsUpperBound;
     private int length;

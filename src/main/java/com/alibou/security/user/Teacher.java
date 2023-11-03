@@ -68,6 +68,13 @@ public class Teacher extends User {
 //        messageContact.getTeacher().pushMessage();
     }
 
+    public void leaveReview(Review review) {
+        reviews.add(review);
+        double tempRating = rating * numberOfReviews + review.getRating();
+        numberOfReviews++;
+        rating = tempRating / numberOfReviews;
+    }
+
     public boolean isVerified() {
         if (isEnabled) return true;
         if (!isVerified) return false;

@@ -43,10 +43,9 @@ public class Lesson {
     private int length;
     private int studentsUpperBound;
     @Column(columnDefinition = "nvarchar")
-    private String themas;
     private double rating;
-    private int numberOfReviews = 0;
-    private int popularity = 0;
+    private int numberOfReviews;
+    private int popularity;
 
     @OneToMany(mappedBy = "lesson")
     @ToString.Exclude
@@ -72,6 +71,13 @@ public class Lesson {
             termins = new ArrayList<>();
         }
         termins.add(termin);
+    }
+
+    public void leaveReview(Review review) {
+        reviews.add(review);
+        double tempRating = rating * numberOfReviews + review.getRating();
+        numberOfReviews++;
+        rating = tempRating / numberOfReviews;
     }
 
     public void removeTermin(Termin termin) {

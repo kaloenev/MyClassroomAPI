@@ -7,6 +7,7 @@ import com.alibou.security.lessons.LessonTermin;
 import com.alibou.security.lessons.Termin;
 import com.alibou.security.miscellanious.Advantages;
 import com.alibou.security.user.Review;
+import com.alibou.security.user.Teacher;
 import lombok.*;
 
 import java.sql.Timestamp;
@@ -33,17 +34,17 @@ public class LessonResponse {
     private int numberOfTermins;
 
     private String status;
+
+    private int weekLength;
     private boolean isPrivateLesson;
 
     private String firstDate;
 
+    private String time;
+
     private String urlToImage;
 
-    private String[] themas;
-
-    private String urlToTeacherProfile;
-
-    private String urlSendTeacherMessage;
+    private List<ThemaSimpleResponse> themas;
 
     private List<ReviewResponse> reviewResponses;
 
@@ -54,11 +55,11 @@ public class LessonResponse {
     private String teacherName;
     private String teacherSurname;
 
-    private TeacherResponse teacherResponse;
+    private int teacherId;
 
 
 
-    public LessonResponse(Lesson lesson, String dateTime) {
+    public LessonResponse(Lesson lesson, String dateTime, String time) {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();
         description = lesson.getDescription();
@@ -71,11 +72,14 @@ public class LessonResponse {
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
         firstDate = dateTime;
-        teacherName = lesson.getTeacher().getFirstname();
-        teacherSurname = lesson.getTeacher().getLastname();
+        this.time = time;
+        var teacher = lesson.getTeacher();
+        teacherName = teacher.getFirstname();
+        teacherSurname = teacher.getLastname();
+        teacherId = teacher.getId();
     }
 
-    public LessonResponse(Lesson lesson, List<Review> reviews, String url1, String url2) throws CustomException {
+    public LessonResponse(Lesson lesson, List<ReviewResponse> reviews) throws CustomException {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();
         description = lesson.getDescription();
@@ -87,24 +91,25 @@ public class LessonResponse {
         rating = lesson.getRating();
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
-        themas = lesson.getThemas().split(",");
         courseTerminResponses = new ArrayList<>();
+        List<CourseTermin> courseTermins = lesson.getCourseTermins();
+        themas = new ArrayList<>();
+        for (var thema : courseTermins.get(0).getThemas()) {
+            themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
+        }
         for (CourseTermin courseTermin : lesson.getCourseTermins()) {
             CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
             courseTerminResponses.add(courseTerminRequestResponse);
+            if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
         }
-        reviewResponses = new ArrayList<>();
-        for (Review review : reviews) {
-            ReviewResponse reviewResponse = new ReviewResponse(review);
-            reviewResponses.add(reviewResponse);
-        }
-        urlToTeacherProfile = url1;
-        urlSendTeacherMessage = url2;
-        teacherName = lesson.getTeacher().getFirstname();
-        teacherSurname = lesson.getTeacher().getLastname();
+        reviewResponses = reviews;
+        Teacher teacher = lesson.getTeacher();
+        teacherName = teacher.getFirstname();
+        teacherSurname = teacher.getLastname();
+        teacherId = teacher.getId();
     }
 
-    public LessonResponse(Lesson lesson, List<String> termins, List<Review> reviews, String url1, String url2) {
+    public LessonResponse(Lesson lesson, List<String> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();
         description = lesson.getDescription();
@@ -117,18 +122,16 @@ public class LessonResponse {
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
         lessonTerminResponses = termins;
-        reviewResponses = new ArrayList<>();
-        for (Review review : reviews) {
-            ReviewResponse reviewResponse = new ReviewResponse(review);
-            reviewResponses.add(reviewResponse);
-        }
-        urlToTeacherProfile = url1;
-        urlSendTeacherMessage = url2;
-        teacherName = lesson.getTeacher().getFirstname();
-        teacherSurname = lesson.getTeacher().getLastname();
+        reviewResponses = reviews;
+        themas = new ArrayList<>();
+        themas.add(themaSimpleResponse);
+        var teacher = lesson.getTeacher();
+        teacherName = teacher.getFirstname();
+        teacherSurname = teacher.getLastname();
+        teacherId = teacher.getId();
     }
 
-    public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, String url) {
+    public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
         courseTerminResponses = new ArrayList<>();
         courseTerminResponses.add(courseTerminRequestResponse);
         this.lessonID = lessonID;
@@ -137,18 +140,20 @@ public class LessonResponse {
         this.teacherName = teacherName;
         this.teacherSurname = teacherSurname;
         this.status = status;
-        this.urlToTeacherProfile = url;
+        this.teacherId = teacherId;
     }
 
-    public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, Timestamp dateTime) {
+    public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
         courseTerminResponses = new ArrayList<>();
-        firstDate = dateTime.toString();
+        this.firstDate = date;
+        this.time = time;
         this.lessonID = lessonID;
         this.title = title;
         this.isPrivateLesson = isPrivateLesson;
         this.teacherName = teacherName;
         this.teacherSurname = teacherSurname;
         this.status = status;
+        this.teacherId = teacherId;
     }
 
 //

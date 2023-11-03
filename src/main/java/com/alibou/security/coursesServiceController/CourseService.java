@@ -15,9 +15,11 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -35,16 +37,14 @@ public class CourseService {
 
     private final TeacherRepository teacherRepository;
 
+    private final StudentRepository studentRepository;
+
     private final ReviewRepo reviewRepo;
 
-    public static final String HOME_PAGE_COURSES_LINK = "";
-
-    public static final String ASKED_QUESTIONS_FILE_LOCATION = "";
+    private final ThemaRepository themaRepository;
 
     public void enrollUserInCourse(String token, int courseID, int terminID) throws CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        Student student = (Student) token1.get().getUser();
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         CourseTermin termin = courseTerminRepo.getCourseTerminByTerminID(terminID);
         if (termin.isFull()) {
             throw new CustomException(HttpStatus.FORBIDDEN, "Error course is full");
@@ -54,9 +54,7 @@ public class CourseService {
     }
 
     public void enrollUserInLesson(String token, int courseID, int terminID) throws CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        Student student = (Student) token1.get().getUser();
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         LessonTermin termin = lessonTerminRepo.getLessonTerminByTerminID(terminID);
         if (termin.isFull()) {
             throw new CustomException(HttpStatus.FORBIDDEN, "Error course is full");
@@ -66,21 +64,18 @@ public class CourseService {
     }
 
     public void likeCourse(String token, int lessonID) throws CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        Student student = (Student) token1.get().getUser();
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         student.saveLessonToLiked(lessonRepository.getLessonByLessonID(lessonID));
     }
 
     public void dislikeCourse(String token, int lessonID) throws CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        Student student = (Student) token1.get().getUser();
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         student.removeLessonsFromLiked(lessonRepository.getLessonByLessonID(lessonID));
     }
 
     public void createCourse(String token, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (!teacher.isVerified()) throw new CustomException(HttpStatus.CONFLICT, "You must be verified to create a course");
         System.out.println(teacher.getId());
         Lesson lesson = Lesson.builder().teacher(teacher).build();
         lesson.setTitle(courseRequest.getTitle());
@@ -92,15 +87,25 @@ public class CourseService {
         lesson.setPrice(courseRequest.getPrice());
         lesson.setDraft(isDraft);
         if (!isPrivateLesson) {
-            lesson.setThemas(courseRequest.getThemas());
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
             lessonRepository.save(lesson);
             for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
+                List<Thema> themas = new ArrayList<>();
+                for (ThemaSimpleResponse themaData : courseRequest.getThemas()) {
+                    Thema thema = Thema.builder().description(themaData.getDescription()).title(themaData.getTitle()).build();
+                    themas.add(thema);
+                }
                 CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()))
-                        .courseDays(courseTerminRequest.getCourseDays()).courseHours(courseTerminRequest.getCourseHours())
+                        .courseDays(courseTerminRequest.getCourseDays())
                         .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                         .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
                         .lesson(lesson).build();
+                courseTerminRepo.save(courseTermin);
+                for (Thema thema : themas) {
+                    thema.setCourseTermin(courseTermin);
+                    themaRepository.save(thema);
+                    courseTermin.addThema(thema);
+                }
                 courseTerminRepo.save(courseTermin);
                 lesson.addTermin(courseTermin);
             }
@@ -108,12 +113,16 @@ public class CourseService {
             lesson.setStudentsUpperBound(1);
             lessonRepository.save(lesson);
             for (String privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                String hours = privateLessonTermin.substring(privateLessonTermin.length() - 8);
-                LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                        .dateTime(Timestamp.valueOf(privateLessonTermin)).build();
-                lessonTerminRepo.save(lessonTermin);
-                lessonTermin.setLesson(lesson);
-                lesson.addTermin(lessonTermin);
+                Thema thema = new Thema();
+                thema.setDescription(courseRequest.getThemas()[0].getDescription());
+                thema.setTitle(courseRequest.getThemas()[0].getTitle());
+                themaRepository.save(thema);
+                    String hours = privateLessonTermin.substring(privateLessonTermin.length() - 8);
+                    LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
+                            .dateTime(Timestamp.valueOf(privateLessonTermin)).thema(thema).build();
+                    lessonTerminRepo.save(lessonTermin);
+                    lessonTermin.setLesson(lesson);
+                    lesson.addTermin(lessonTermin);
             }
         }
         lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
@@ -122,8 +131,11 @@ public class CourseService {
         teacher.addLesson(lesson);
     }
 
-    public void editCourse(int lessonID, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
+    public void editCourse(String token, int lessonID, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (!teacher.isVerified()) throw new CustomException(HttpStatus.CONFLICT, "Трябва да се верифицирате първо");
         Lesson lesson = lessonRepository.getLessonByLessonID(lessonID);
+        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.FORBIDDEN, "Имате достъп само до Вашите курсове");
         lesson.setTitle(courseRequest.getTitle());
         if (!isDraft) {
             checkForUnallowedChanges(lesson, courseRequest);
@@ -136,16 +148,27 @@ public class CourseService {
         lesson.setPrice(courseRequest.getPrice());
         lesson.setDraft(isDraft);
         if (!isPrivateLesson) {
-            lesson.setThemas(courseRequest.getThemas());
+            //TODO Find alternative to removal
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
+            for (CourseTermin termin : lesson.getCourseTermins()) {
+                themaRepository.deleteAll(termin.getThemas());
+            }
             terminRepo.deleteAll(lesson.getTermins());
             lesson.removeAllTermins();
+            List<Thema> themas = new ArrayList<>();
+            for (ThemaSimpleResponse themaData : courseRequest.getThemas()) {
+                Thema thema = new Thema();
+                thema.setDescription(themaData.getDescription());
+                thema.setTitle(themaData.getTitle());
+                themaRepository.save(thema);
+                themas.add(thema);
+            }
             for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
                 CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()))
-                        .courseDays(courseTerminRequest.getCourseDays()).courseHours(courseTerminRequest.getCourseHours())
+                        .courseDays(courseTerminRequest.getCourseDays())
                         .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                         .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                        .lesson(lesson).build();
+                        .lesson(lesson).themas(themas).build();
                 courseTerminRepo.save(courseTermin);
                 lesson.addTermin(courseTermin);
             }
@@ -154,9 +177,13 @@ public class CourseService {
             terminRepo.deleteAll(lesson.getTermins());
             lesson.removeAllTermins();
             for (String privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                String hours = privateLessonTermin.substring(privateLessonTermin.length() - 9);
+                Thema thema = new Thema();
+                thema.setDescription(courseRequest.getThemas()[0].getDescription());
+                thema.setTitle(courseRequest.getThemas()[0].getTitle());
+                themaRepository.save(thema);
+                String hours = privateLessonTermin.substring(privateLessonTermin.length() - 8);
                 LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                        .dateTime(Timestamp.valueOf(privateLessonTermin)).build();
+                        .dateTime(Timestamp.valueOf(privateLessonTermin)).thema(thema).build();
                 lessonTerminRepo.save(lessonTermin);
                 lessonTermin.setLesson(lesson);
                 lesson.addTermin(lessonTermin);
@@ -191,17 +218,17 @@ public class CourseService {
     }
 
     public HomePageResponse getHomePageInfo() {
-        List<Lesson> lessons = lessonRepository.findFirstDistinct9ByOrderByPopularityDesc();
+        List<Lesson> lessons = lessonRepository.getDistinct9ByOrderByPopularityDesc();
         // Add file reader and links to the courses
         HomePageResponse homePageResponse = new HomePageResponse();
 
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
-            lessonResponses.add(new LessonResponse(lesson, lesson.getTermins().get(0).getDateTime().toString()));
+            lessonResponses.add(new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime()));
         }
 
         List<ReviewResponse> reviewResponses = new ArrayList<>();
-        for (Review review : reviewRepo.findTopDistinct3ByOrderByRatingDescMessageDesc()) {
+        for (Review review : reviewRepo.getDistinct3ByOrderByRatingDescMessageDesc()) {
             ReviewResponse reviewResponse = new ReviewResponse(review);
             reviewResponses.add(reviewResponse);
         }
@@ -211,11 +238,29 @@ public class CourseService {
         return homePageResponse;
     }
 
-    public Subject[] getFilters() {
-        return Subject.values();
+    public void leaveReview(String token, ReviewRequest reviewRequest) {
+        //TODO Change from Teacher to Student!
+        Lesson lesson = lessonRepository.getLessonByLessonID(reviewRequest.getLessonId());
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        Review review = Review.builder().dateTime(Timestamp.valueOf(LocalDateTime.now())).lesson(lesson).message(reviewRequest.getMessage())
+                .rating(reviewRequest.getRating()).studentName(teacher.getFirstname()).studentSurname(teacher.getLastname())
+                .teacher(teacher).build();
+        reviewRepo.save(review);
+        lesson.leaveReview(review);
+        lessonRepository.save(lesson);
+        teacher.leaveReview(review);
+        teacherRepository.save(teacher);
     }
 
-    public List<LessonResponse> getFilteredLessons(FilterRequest request) throws IllegalArgumentException {
+    public FilterResponse getFilters() {
+        List<String> subjects = lessonRepository.getAllSubjects();
+        List<String> grades = lessonRepository.getAllGrades();
+        int minPrice = lessonRepository.getMinPrice();
+        int maxPrice = lessonRepository.getMaxPrice();
+        return new FilterResponse(subjects, grades, minPrice, maxPrice);
+    }
+
+    public List<LessonResponse> getFilteredLessons(FilterRequest request) throws IllegalArgumentException, CustomException {
         List<LessonResponse> lessonResponses = new ArrayList<>();
         Pageable sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12);
         String sort;
@@ -234,6 +279,7 @@ public class CourseService {
             request.setPriceLowerBound(0);
         }
         Page<Lesson> lessons;
+        int weekLength = -1;
         if (request.isPrivateLesson()) {
             lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                     request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
@@ -244,46 +290,38 @@ public class CourseService {
                     request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                     request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
                     Timestamp.valueOf(request.getUpperBound()), false, sortedAndPaged);
+            weekLength = 0;
         }
         for (Lesson lesson : lessons) {
-            LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDateTime().toString());
+            LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime());
+            if (weekLength != -1) lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
             lessonResponses.add(lessonResponse);
         }
         return lessonResponses;
     }
 
-    public LessonResponse getLessonById(int id, String sort, int reviewPage) throws CustomException {
-//TODO do lesson page for logged user   var token1= tokenRepository.findByToken(token);
+    public LessonResponse getLessonById(int id) throws CustomException {
+//TODO do lesson page for logged user   Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         var lesson = lessonRepository.getLessonByLessonID(id);
         LessonResponse lessonResponse;
-        Pageable sortedAndPaged;
-        switch (sort) {
-            case "Най-нови" -> sortedAndPaged = PageRequest.of(reviewPage - 1, 12, Sort.by("dateTime").descending());
-            case "Най-стари" -> sortedAndPaged = PageRequest.of(reviewPage - 1, 12, Sort.by("dateTime").ascending());
-            case "Най-висок" -> sortedAndPaged = PageRequest.of(reviewPage - 1, 12, Sort.by("rating").descending());
-            case "Най-нисък" -> sortedAndPaged = PageRequest.of(reviewPage - 1, 12, Sort.by("rating").ascending());
-            default -> sortedAndPaged = PageRequest.of(reviewPage - 1, 12, Sort.by("dateTime").descending());
-        }
-        List<Review> reviews = reviewRepo.findTopByLesson_lessonID(id, sortedAndPaged);
+        List<ReviewResponse> reviews = getLessonReviews(id, "", 1);
         if (lesson.isPrivateLesson()) {
             List<LessonTermin> lessonTermins = lesson.getLessonTermins();
             List<String> lessonTerminResponses = new ArrayList<>();
+            ThemaSimpleResponse thema = new ThemaSimpleResponse(lessonTermins.get(0).getThema().getTitle(), lessonTermins.get(0).getThema().getDescription());
             for (LessonTermin lessonTermin : lessonTermins) {
                 lessonTerminResponses.add(lessonTermin.getDateTime().toString());
             }
-            lessonResponse = new LessonResponse(lesson, lessonTerminResponses, reviews, "url1", "url2");
+            lessonResponse = new LessonResponse(lesson, lessonTerminResponses, reviews, thema);
         } else {
-            lessonResponse = new LessonResponse(lesson, reviews, "url", "url");
+            lessonResponse = new LessonResponse(lesson, reviews);
         }
         return lessonResponse;
     }
 
     public List<LessonResponse> getStudentAll(String token, LessonStatus lessonStatus, String sort) throws ClassCastException, CustomException {
         //TODO add paging? or make default lessonstatus to active
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        Student student = (Student) user;
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
 
         if (sort.equals("Частни уроци")) return getStudentPrivateLessons(lessonStatus, student);
         else if (sort.equals("Курсове")) return getStudentCourses(lessonStatus, student);
@@ -300,7 +338,7 @@ public class CourseService {
                 Lesson lesson = courseTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, "url");
+                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
                 lessonResponses.add(lessonResponse);
                 continue;
             }
@@ -311,13 +349,14 @@ public class CourseService {
                 Lesson lesson = courseTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, "url1");
+                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
             } else {
                 if (!lessonTermin.getLessonStatus().equals(lessonStatus)) continue;
                 Lesson lesson = lessonTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                        teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(), lessonTermin.getDateTime());
+                        teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
+                        lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
                 counter++;
             }
             lessonResponses.add(lessonResponse);
@@ -329,7 +368,8 @@ public class CourseService {
             Lesson lesson = lessonTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
             lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                    teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(), lessonTermin.getDateTime());
+                    teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
+                    lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
             lessonResponses.add(lessonResponse);
             counter++;
         }
@@ -343,7 +383,8 @@ public class CourseService {
             Lesson lesson = lessonTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
             LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                    teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(), lessonTermin.getDateTime());
+                    teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
+                    lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
 
             lessonResponses.add(lessonResponse);
         }
@@ -358,17 +399,14 @@ public class CourseService {
             Lesson lesson = courseTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
             LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                    teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, "url");
+                    teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
             lessonResponses.add(lessonResponse);
         }
         return lessonResponses;
     }
 
     public List<LessonResponse> getFavouriteCourses(String token, String sort, int pageNumber) throws ClassCastException, CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        Student student = (Student) user;
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<LessonResponse> lessonResponses = new ArrayList<>();
         Pageable sortedAndPaged;
         switch (sort) {
@@ -386,7 +424,7 @@ public class CourseService {
                 List<Lesson> lessons = student.getFavouriteLessons();
                 for (int i = (pageNumber - 1) * 12; i < pageNumber * 12; i++) {
                     Lesson lesson = lessons.get(i);
-                    lessonResponses.add(new LessonResponse(lesson, lesson.getTermins().get(0).getDateTime().toString()));
+                    lessonResponses.add(new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime()));
                 }
                 return lessonResponses;
             }
@@ -395,17 +433,14 @@ public class CourseService {
         }
         List<Lesson> lessons = lessonRepository.getLessonByisLikedByStudent_id(student.getId(), sortedAndPaged);
         for (Lesson lesson : lessons) {
-            LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDateTime().toString());
+            LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime());
             lessonResponses.add(lessonResponse);
         }
         return lessonResponses;
     }
 
     public List<TeacherResponse> getFavouriteTeachers(String token) throws ClassCastException, CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        Student student = (Student) user;
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<TeacherResponse> teachers = new ArrayList<>();
         for (Teacher teacher : student.getFavouriteTeachers()) {
             TeacherResponse teacherResponse = new TeacherResponse(teacher, "url");
@@ -415,17 +450,14 @@ public class CourseService {
     }
 
     public List<LessonResponse> getTeacherLessons(String token, String lessonStatus, boolean privateLessons, boolean upcoming) throws ClassCastException, CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        Teacher teacher = (Teacher) user;
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         List<Lesson> lessons = teacher.getLessons();
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
             List<Termin> termins = lesson.getTermins();
             if (upcoming) {
                 if (!termins.isEmpty()) {
-                    LessonResponse lessonResponse = new LessonResponse(lesson, termins.get(0).getDateTime().toString());
+                    LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime());
                     lessonResponse.setNumberOfTermins(termins.size());
                     lessonResponse.setStatus("Активен");
                     lessonResponses.add(lessonResponse);
@@ -434,23 +466,23 @@ public class CourseService {
             else if (lesson.isPrivateLesson() == privateLessons) {
                 if (lesson.isDraft() && lessonStatus.equals("Чернови")) {
                     if (termins.isEmpty()) {
-                        LessonResponse lessonResponse = new LessonResponse(lesson, "Няма активни дати");
+                        LessonResponse lessonResponse = new LessonResponse(lesson, "", "");
                         lessonResponse.setStatus("Чернова");
                         lessonResponses.add(lessonResponse);
                     } else {
-                        LessonResponse lessonResponse = new LessonResponse(lesson, termins.get(0).getDateTime().toString());
+                        LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime());
                         lessonResponse.setNumberOfTermins(termins.size());
                         lessonResponse.setStatus("Чернова");
                         lessonResponses.add(lessonResponse);
                     }
                 }
                 else if (termins.isEmpty() && lessonStatus.equals("Неактивни")) {
-                    LessonResponse lessonResponse = new LessonResponse(lesson, "Няма активни дати");
+                    LessonResponse lessonResponse = new LessonResponse(lesson, "", "");
                     lessonResponse.setStatus("Неактивен");
                     lessonResponses.add(lessonResponse);
                 }
                 else if (!termins.isEmpty() && lessonStatus.equals("Активни")) {
-                    LessonResponse lessonResponse = new LessonResponse(lesson, termins.get(0).getDateTime().toString());
+                    LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getTermins().get(0).getDate(), lesson.getTermins().get(0).getTime());
                     lessonResponse.setNumberOfTermins(termins.size());
                     lessonResponse.setStatus("Активен");
                     lessonResponses.add(lessonResponse);
@@ -462,10 +494,7 @@ public class CourseService {
     }
 
     public List<CourseTerminRequestResponse> getCourseTerminsTeacher(String token, int lessonId)throws CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        if (!user.getRole().equals(Role.TEACHER)) throw new CustomException(HttpStatus.FORBIDDEN, "Error, this is a teacher function");
+        // TODO add to teacher exclusive functions
         List<CourseTermin> courseTermins = courseTerminRepo.getCourseTerminsByLessonID(lessonId);
         List<CourseTerminRequestResponse> courseTerminRequestResponses = new ArrayList<>();
         for (CourseTermin courseTermin : courseTermins) {
@@ -475,10 +504,7 @@ public class CourseService {
     }
 
     public List<LessonTerminResponse> getLessonTerminsTeacher(String token, int lessonId) throws ClassCastException, CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        Teacher teacher = (Teacher) user;
+        // TODO add to teacher exclusive functions
         List<LessonTermin> lessonTermins = lessonTerminRepo.getLessonTerminsByLessonID(lessonId);
         List<LessonTerminResponse> lessonResponses = new ArrayList<>();
         int dayOfMonth = -1;
@@ -503,44 +529,20 @@ public class CourseService {
         return lessonResponses;
     }
 
-    public List<ReviewResponse> getLessonReviews(String token, int lessonId, int pageNumber) throws ClassCastException, CustomException {
-        var token1 = tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Login link");
-        var user = token1.get().getUser();
-        Teacher teacher = (Teacher) user;
-        Pageable sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_rating").descending());
-        List<Review> reviews = reviewRepo.findTopByLesson_lessonID(lessonId, sortedAndPaged);
+    public List<ReviewResponse> getLessonReviews(int lessonId, String sort, int pageNumber) throws ClassCastException {
+        Pageable sortedAndPaged;
+        switch (sort) {
+            case "Най-нови" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
+            case "Най-стари" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
+            case "Най-висок" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
+            case "Най-нисък" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").ascending());
+            default -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
+        }
+        List<Review> reviews = reviewRepo.getByLesson_lessonID(lessonId, sortedAndPaged);
         List<ReviewResponse> reviewResponses = new ArrayList<>();
         for (Review review : reviews) {
             reviewResponses.add(new ReviewResponse(review));
         }
         return reviewResponses;
-    }
-
-    public LessonResponse getCoursePage(int lessonId) throws CustomException {
-        Lesson lesson = lessonRepository.getLessonByLessonID(lessonId);
-        LessonResponse lessonResponse = new LessonResponse(lesson, lesson.getReviews(), "url1", "url2");
-        Teacher teacher = lesson.getTeacher();
-        TeacherResponse teacherResponse = new TeacherResponse(teacher, "url");
-        teacherResponse.setDescription(teacher.getDescription());
-        teacherResponse.setExperience(teacherResponse.getExperience());
-        lessonResponse.setTeacherResponse(teacherResponse);
-        return lessonResponse;
-    }
-
-    public LessonResponse getLessonPage(int lessonId) throws CustomException {
-        Lesson lesson = lessonRepository.getLessonByLessonID(lessonId);
-        List<String> termins = new ArrayList<>();
-        for (Termin termin : lesson.getTermins()) {
-            termins.add(termin.getDateTime().toString());
-        }
-        LessonResponse lessonResponse = new LessonResponse(lesson, termins, lesson.getReviews(),
-                "url1", "url2");
-        Teacher teacher = lesson.getTeacher();
-        TeacherResponse teacherResponse = new TeacherResponse(teacher, "url");
-        teacherResponse.setDescription(teacher.getDescription());
-        teacherResponse.setExperience(teacherResponse.getExperience());
-        lessonResponse.setTeacherResponse(teacherResponse);
-        return lessonResponse;
     }
 }

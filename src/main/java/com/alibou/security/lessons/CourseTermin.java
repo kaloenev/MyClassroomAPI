@@ -8,6 +8,7 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.http.HttpStatus;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -21,7 +22,6 @@ public class CourseTermin extends Termin{
     private int weekLength;
     @Column(columnDefinition = "nvarchar")
     private String courseDays;
-    private String courseHours;
     private int courseHoursNumber;
     private int studentsUpperBound;
     private int placesRemaining = studentsUpperBound;
@@ -29,6 +29,10 @@ public class CourseTermin extends Termin{
     @ManyToMany(fetch = FetchType.LAZY)
     @ToString.Exclude
     private List<Student> enrolledStudents;
+
+    @OneToMany(mappedBy = "courseTermin")
+    @ToString.Exclude
+    private List<Thema> themas;
 
     public void enrollStudent(Student student) throws CustomException {
         if (isFull) throw new CustomException(HttpStatus.CONFLICT, "Error the course is already full");
@@ -39,5 +43,10 @@ public class CourseTermin extends Termin{
             isFull = true;
         }
         lesson.increasePopularity();
+    }
+
+    public void addThema(Thema thema) {
+        if (themas == null) themas = new ArrayList<>();
+        themas.add(thema);
     }
 }

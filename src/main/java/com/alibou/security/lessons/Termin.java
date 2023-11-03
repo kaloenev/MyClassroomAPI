@@ -24,9 +24,6 @@ public class Termin {
     @Id
     @GeneratedValue
     protected Integer terminID;
-    protected String linkToRecording;
-    protected String linkToClassroom;
-    protected File presentation;
     @Enumerated(EnumType.STRING)
     protected LessonStatus lessonStatus;
     private Timestamp dateTime;
@@ -41,4 +38,12 @@ public class Termin {
     @OneToMany(mappedBy = "lesson")
     @ToString.Exclude
     protected List<Assignment> assignments;
+
+    public String getTime() {
+        return dateTime.toString().substring(11, 16);
+    }
+
+    public String getDate() {
+        return dateTime.toString().substring(0, 10);
+    }
 }

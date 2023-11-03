@@ -13,14 +13,14 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReviewResponse {
-    private Timestamp dateTime;
+    private String date;
     private String message;
     private int rating;
     private String studentName;
     private String studentSurname;
 
     public ReviewResponse(Review review) {
-        dateTime = review.getDateTime();
+        date = review.getDateTime().toString().substring(0, 10);
         message = review.getMessage();
         rating = review.getRating();
         studentName = review.getStudentName();

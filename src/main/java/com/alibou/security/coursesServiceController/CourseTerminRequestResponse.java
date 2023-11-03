@@ -25,22 +25,22 @@ public class CourseTerminRequestResponse {
     private String lessonStatus;
 
     public CourseTerminRequestResponse(CourseTermin courseTermin) {
-        startDate = courseTermin.getDateTime().toString();
+        startDate = courseTermin.getDate();
         weekLength = courseTermin.getWeekLength();
         courseDays = courseTermin.getCourseDays();
-        courseHours = courseTermin.getCourseHours();
+        courseHours = courseTermin.getTime();
         studentsUpperBound = courseTermin.getStudentsUpperBound();
         studentsLowerBound = 1;
-        endDate = new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString();
+        endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
     }
 
     public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus) {
-        startDate = courseTermin.getDateTime().toString();
+        startDate = courseTermin.getDate();
         courseDays = courseTermin.getCourseDays();
-        courseHours = courseTermin.getCourseHours();
+        courseHours = courseTermin.getTime();
         studentsUpperBound = courseTermin.getStudentsUpperBound();
         studentsLowerBound = studentsUpperBound - courseTermin.getPlacesRemaining();
-        endDate = new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString();
+        endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
         this.lessonStatus = lessonStatus.toString();
     }
 }

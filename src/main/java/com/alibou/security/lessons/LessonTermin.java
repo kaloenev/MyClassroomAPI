@@ -21,7 +21,9 @@ import java.util.Objects;
 @SuperBuilder
 public class LessonTermin extends Termin{
     private int lessonHours;
-
+    @OneToOne
+    @JoinColumn(name = "thema_themaID")
+    private Thema thema;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
     @ToString.Exclude

@@ -94,10 +94,26 @@ public class CourseController {
     public ResponseEntity<Object> getFilteredCourses(@RequestBody FilterRequest filterRequest) {
         try {
             return ResponseEntity.ok(courseService.getFilteredLessons(filterRequest));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | CustomException e) {
         CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
         return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
+    }
+
+    @PostMapping("/leaveReview")
+    public ResponseEntity<Object> leaveReview(@RequestBody ReviewRequest reviewRequest, HttpServletRequest httpRequest) {
+        try {
+            courseService.leaveReview(httpRequest.getHeader("Authorization"), reviewRequest);
+        } catch (IllegalArgumentException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/getReviews")
+    public ResponseEntity<Object> getReviews(@RequestBody LessonRequest lessonRequest) {
+        return ResponseEntity.ok(courseService.getLessonReviews(lessonRequest.getId(), lessonRequest.getSort(), lessonRequest.getPage()));
     }
 
     @GetMapping("/getFilters")
@@ -118,10 +134,10 @@ public class CourseController {
         return ResponseEntity.ok(image);
     }
 
-    @PostMapping("/getCoursePage")
-    public ResponseEntity<Object> getCoursePage(@RequestBody LessonRequest lessonRequest) {
+    @GetMapping("/getCoursePage/{id}")
+    public ResponseEntity<Object> getCoursePage(@PathVariable int id) {
         try {
-            return ResponseEntity.ok(courseService.getLessonById(lessonRequest.getId(), lessonRequest.getSort(), lessonRequest.getPage()));
+            return ResponseEntity.ok(courseService.getLessonById(id));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
