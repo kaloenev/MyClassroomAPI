@@ -18,20 +18,21 @@ public class TeacherResponse {
     private double rating;
     private String specialties;
     private String firstName;
+
+    private String location;
     private String secondName;
     private String description;
     private String experience;
     private List<ReviewResponse> reviews;
-    private String urlToProfile;
 
-    public TeacherResponse(Teacher teacher, String url) {
+    public TeacherResponse(Teacher teacher) {
         this.id = teacher.getId();
         this.numberOfReviews = teacher.getNumberOfReviews();
         this.rating = teacher.getRating();
         this.specialties = teacher.getSpecialties();
         this.firstName = teacher.getFirstname();
         this.secondName = teacher.getLastname();
-        this.urlToProfile = url;
+        this.location = teacher.getCity().toString() + ", Bulgaria";
     }
 
     public TeacherResponse(Teacher teacher, List<ReviewResponse> reviewResponses) {
@@ -43,6 +44,7 @@ public class TeacherResponse {
         this.firstName = teacher.getFirstname();
         this.secondName = teacher.getLastname();
         this.reviews = reviewResponses;
+        this.location = teacher.getCity().toString() + ", Bulgaria";
         this.experience = teacher.getExperience();
     }
 }

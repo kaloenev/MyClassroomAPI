@@ -57,6 +57,8 @@ public class LessonResponse {
 
     private int teacherId;
 
+    private TeacherResponse teacherResponse;
+
 
 
     public LessonResponse(Lesson lesson, String dateTime, String time) {
@@ -104,9 +106,8 @@ public class LessonResponse {
         }
         reviewResponses = reviews;
         Teacher teacher = lesson.getTeacher();
-        teacherName = teacher.getFirstname();
-        teacherSurname = teacher.getLastname();
-        teacherId = teacher.getId();
+        teacherResponse = new TeacherResponse(teacher);
+        teacherId = teacherResponse.getId();
     }
 
     public LessonResponse(Lesson lesson, List<String> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
@@ -126,9 +127,8 @@ public class LessonResponse {
         themas = new ArrayList<>();
         themas.add(themaSimpleResponse);
         var teacher = lesson.getTeacher();
-        teacherName = teacher.getFirstname();
-        teacherSurname = teacher.getLastname();
-        teacherId = teacher.getId();
+        teacherResponse = new TeacherResponse(teacher);
+        teacherId = teacherResponse.getId();
     }
 
     public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {

@@ -445,7 +445,7 @@ public class CourseService {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<TeacherResponse> teachers = new ArrayList<>();
         for (Teacher teacher : student.getFavouriteTeachers()) {
-            TeacherResponse teacherResponse = new TeacherResponse(teacher, "url");
+            TeacherResponse teacherResponse = new TeacherResponse(teacher);
             teachers.add(teacherResponse);
         }
         return teachers;
