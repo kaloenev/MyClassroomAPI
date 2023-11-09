@@ -39,6 +39,7 @@ public class Lesson {
     private String advantages;
     private boolean isPrivateLesson;
     private boolean isDraft;
+    private boolean hasTermins = false;
     private double price;
     private int length;
     private int studentsUpperBound;
@@ -71,6 +72,7 @@ public class Lesson {
             termins = new ArrayList<>();
         }
         termins.add(termin);
+        hasTermins = true;
     }
 
     public void leaveReview(Review review) {
@@ -82,10 +84,12 @@ public class Lesson {
 
     public void removeTermin(Termin termin) {
         termins.remove(termin);
+        if (termins.isEmpty()) hasTermins = false;
     }
 
     public void removeAllTermins() {
         termins.clear();
+        hasTermins = false;
     }
 
     public void increasePopularity() {

@@ -20,7 +20,7 @@ public class CourseTerminRequestResponse {
     private String courseDays;
     private String courseHours;
     private int studentsUpperBound;
-    private int studentsLowerBound;
+    private int numberOfStudents;
 
     private String lessonStatus;
 
@@ -30,7 +30,7 @@ public class CourseTerminRequestResponse {
         courseDays = courseTermin.getCourseDays();
         courseHours = courseTermin.getTime();
         studentsUpperBound = courseTermin.getStudentsUpperBound();
-        studentsLowerBound = 1;
+        numberOfStudents = studentsUpperBound - courseTermin.getPlacesRemaining();
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
     }
 
@@ -39,7 +39,7 @@ public class CourseTerminRequestResponse {
         courseDays = courseTermin.getCourseDays();
         courseHours = courseTermin.getTime();
         studentsUpperBound = courseTermin.getStudentsUpperBound();
-        studentsLowerBound = studentsUpperBound - courseTermin.getPlacesRemaining();
+        numberOfStudents = studentsUpperBound - courseTermin.getPlacesRemaining();
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
         this.lessonStatus = lessonStatus.toString();
     }

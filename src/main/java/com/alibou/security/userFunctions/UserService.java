@@ -8,6 +8,7 @@ import com.alibou.security.emailing.EmailService;
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -193,6 +194,23 @@ public class UserService {
             reviewResponses.add(reviewResponse);
         }
         return new TeacherResponse(teacher, reviewResponses);
+    }
+
+    public UserResponse getUser(HttpServletRequest httpServletRequest) {
+        String token = httpServletRequest.getHeader("Authorization");
+        User user = userRepository.findUserByTokens_token(token.substring(7));
+        return new UserResponse(user.getId(), user.getFirstname(), user.getLastname());
+    }
+
+    public void editStudentProfile() {
+
+    }
+
+    public UserProfileResponse getUserProfile(HttpServletRequest httpServletRequest) {
+        //TODO implement
+        String token = httpServletRequest.getHeader("Authorization");
+        User user = userRepository.findUserByTokens_token(token.substring(7));
+        return null;
     }
 
 

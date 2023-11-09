@@ -10,6 +10,8 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     Lesson getLessonByLessonID(int id);
     List<Lesson> getDistinct9ByOrderByPopularityDesc();
 
+    List<Lesson> getDistinct4BySubjectOrGradeOrderByPopularityDesc(String subject, String grade);
+
     List<Lesson> getLessonByisLikedByStudent_id(int studentID, Pageable pageable);
     @Query("SELECT distinct l.subject from Lesson l order by l.subject ASC")
     List<String> getAllSubjects();

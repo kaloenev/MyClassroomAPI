@@ -90,6 +90,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getTeacherPage(id));
     }
 
+    @GetMapping("/getUser")
+    public ResponseEntity<Object> getTeacherProfile(HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(userService.getUser(httpServletRequest));
+    }
+
 
 
 

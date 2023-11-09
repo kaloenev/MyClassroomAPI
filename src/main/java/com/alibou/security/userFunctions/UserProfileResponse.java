@@ -1,4 +1,4 @@
-package com.alibou.security.coursesServiceController;
+package com.alibou.security.userFunctions;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TimePair {
-    private String time;
-    private boolean isBooked;
+public class UserProfileResponse {
+    private int id;
+    private String name;
+    private String surname;
+
 }

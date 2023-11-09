@@ -24,7 +24,7 @@ public class CourseTermin extends Termin{
     private String courseDays;
     private int courseHoursNumber;
     private int studentsUpperBound;
-    private int placesRemaining = studentsUpperBound;
+    private int placesRemaining;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @ToString.Exclude

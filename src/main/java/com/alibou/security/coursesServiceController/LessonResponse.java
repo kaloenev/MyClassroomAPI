@@ -11,6 +11,8 @@ import com.alibou.security.user.Teacher;
 import lombok.*;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -26,12 +28,16 @@ public class LessonResponse {
     private String grade;
     private String subject;
     private double price;
+
+    private double pricePerHour;
     private int length;
     private int studentsUpperBound;
     private double rating;
     private int numberOfReviews;
 
     private int numberOfTermins;
+
+    private int numberOfStudents;
 
     private String status;
 
@@ -50,7 +56,7 @@ public class LessonResponse {
 
     private List<CourseTerminRequestResponse> courseTerminResponses;
 
-    private List<String> lessonTerminResponses;
+    private List<LessonTerminResponse> lessonTerminResponses;
 
     private String teacherName;
     private String teacherSurname;
@@ -61,7 +67,7 @@ public class LessonResponse {
 
 
 
-    public LessonResponse(Lesson lesson, String dateTime, String time) {
+    public LessonResponse(Lesson lesson, String dateTime, String time, int numberOfStudents) {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();
         description = lesson.getDescription();
@@ -79,6 +85,7 @@ public class LessonResponse {
         teacherName = teacher.getFirstname();
         teacherSurname = teacher.getLastname();
         teacherId = teacher.getId();
+        this.numberOfStudents = numberOfStudents;
     }
 
     public LessonResponse(Lesson lesson, List<ReviewResponse> reviews) throws CustomException {
@@ -99,18 +106,25 @@ public class LessonResponse {
         for (var thema : courseTermins.get(0).getThemas()) {
             themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
         }
+        CourseTermin courseTermin1 = null;
         for (CourseTermin courseTermin : lesson.getCourseTermins()) {
             CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
+            Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
+                    + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+            courseTerminRequestResponse.setCourseHours(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
             courseTerminResponses.add(courseTerminRequestResponse);
             if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
+            courseTermin1 = courseTermin;
         }
+        String[] days = courseTermin1.getCourseDays().split(",");
+        pricePerHour = lesson.getPrice() / (days.length * weekLength);
         reviewResponses = reviews;
         Teacher teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
     }
 
-    public LessonResponse(Lesson lesson, List<String> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
+    public LessonResponse(Lesson lesson, List<LessonTerminResponse> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();
         description = lesson.getDescription();
