@@ -1,15 +1,13 @@
 package com.alibou.security.coursesServiceController;
 
 import com.alibou.security.user.Teacher;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class TeacherResponse {
@@ -33,6 +31,8 @@ public class TeacherResponse {
         this.firstName = teacher.getFirstname();
         this.secondName = teacher.getLastname();
         this.location = teacher.getCity().toString() + ", Bulgaria";
+        this.description = teacher.getDescription();
+        this.experience = teacher.getExperience();
     }
 
     public TeacherResponse(Teacher teacher, List<ReviewResponse> reviewResponses) {

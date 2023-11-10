@@ -168,18 +168,19 @@ public class UserService {
         teacher.setExperience(experience);
     }
 
-    public void likeTeacher(String token, int teacherID) throws CustomException {
-        var token1= tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        Student student = (Student) token1.get().getUser();
-        student.saveTeacherToLiked((Teacher) userRepository.findUserById(teacherID));
+    public void likeTeacher(String token, int teacherID) {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        Teacher teacher = teacherRepository.findTeacherById(teacherID);
+        student.saveTeacherToLiked(teacher);
+        studentRepository.save(student);
+        teacher.addIsLikedByStudent(student);
+        teacherRepository.save(teacher);
     }
 
-    public void dislikeTeacher(String token, int teacherID) throws CustomException {
-        var token1= tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        Student student = (Student) token1.get().getUser();
-        student.removeTeacherFromLiked((Teacher) userRepository.findUserById(teacherID));
+    public void dislikeTeacher(String token, int teacherID) {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        student.removeTeacherFromLiked(teacherRepository.findTeacherById(teacherID));
+        studentRepository.save(student);
     }
 
     public VerificationFormResponse getVerificationForm() {
@@ -199,7 +200,7 @@ public class UserService {
     public UserResponse getUser(HttpServletRequest httpServletRequest) {
         String token = httpServletRequest.getHeader("Authorization");
         User user = userRepository.findUserByTokens_token(token.substring(7));
-        return new UserResponse(user.getId(), user.getFirstname(), user.getLastname());
+        return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString());
     }
 
     public void editStudentProfile() {
@@ -217,5 +218,16 @@ public class UserService {
     public List<TimePair> getCalendar(String token) {
         //TODO implement
         return null;
+    }
+
+    public List<TeacherResponse> getFavouriteTeachers(String token) {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        List<TeacherResponse> teacherResponses = new ArrayList<>();
+        for (Teacher teacher : student.getFavouriteTeachers()) {
+            TeacherResponse teacherResponse = TeacherResponse.builder().id(teacher.getId()).firstName(teacher.getFirstname())
+                    .secondName(teacher.getLastname()).numberOfReviews(teacher.getNumberOfReviews()).rating(teacher.getRating()).build();
+            teacherResponses.add(teacherResponse);
+        }
+        return teacherResponses;
     }
 }

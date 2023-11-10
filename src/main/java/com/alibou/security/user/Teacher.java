@@ -53,10 +53,9 @@ public class Teacher extends User {
     @ToString.Exclude
     private List<Review> reviews;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
+    @ManyToMany(fetch = FetchType.LAZY)
     @ToString.Exclude
-    private Student isLikedByStudent;
+    private List<Student> isLikedByStudent;
 
     @OneToMany(mappedBy = "teacher")
     @ToString.Exclude
@@ -86,6 +85,10 @@ public class Teacher extends User {
     public void verifyAccount() {
         isVerified = true;
         timeOfVerificationRequest = new Timestamp(System.currentTimeMillis());
+    }
+
+    public void addIsLikedByStudent(Student student) {
+        isLikedByStudent.add(student);
     }
 
     public void addLesson(Lesson lesson) {

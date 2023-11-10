@@ -62,10 +62,9 @@ public class Lesson {
     @ToString.Exclude
     private List<Review> reviews;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
+    @ManyToMany(fetch = FetchType.LAZY)
     @ToString.Exclude
-    private Student isLikedByStudent;
+    private List<Student> isLikedByStudent;
 
     public void addTermin(Termin termin) {
         if (this.termins == null) {

@@ -164,5 +164,26 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/likeCourse/{id}")
+    public ResponseEntity<Object> likeCourse(@PathVariable int id, HttpServletRequest httpServletRequest) {
+        try {
+            courseService.likeCourse(httpServletRequest.getHeader("Authorization"), id);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+//    @PostMapping("/getLikedCourses")
+//    public ResponseEntity<Object> getLikedCourses(HttpServletRequest httpServletRequest) {
+//        try {
+//            return ResponseEntity.ok(courseService.getFavouriteCourses(httpServletRequest.getHeader("Authorization")));
+//        } catch (CustomException e) {
+//            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+//        }
+//    }
+
 
 }

@@ -27,14 +27,12 @@ public class Student extends User{
     @OrderColumn
     private List<LessonTermin> privateLessons;
 
-    @OneToMany(mappedBy = "isLikedByStudent")
+    @ManyToMany(mappedBy = "isLikedByStudent")
     @ToString.Exclude
-    @OrderColumn
     private List<Teacher> favouriteTeachers;
 
-    @OneToMany(mappedBy = "isLikedByStudent")
+    @ManyToMany(mappedBy = "isLikedByStudent")
     @ToString.Exclude
-    @OrderColumn
     private List<Lesson> favouriteLessons;
 
     @OneToMany(mappedBy = "student")

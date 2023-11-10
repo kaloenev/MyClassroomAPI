@@ -88,6 +88,7 @@ public class CourseService {
         lesson.setPrivateLesson(isPrivateLesson);
         lesson.setPrice(courseRequest.getPrice());
         lesson.setDraft(isDraft);
+        lesson.setHasTermins(false);
         if (!isPrivateLesson) {
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
             lessonRepository.save(lesson);
@@ -110,6 +111,7 @@ public class CourseService {
                 }
                 courseTerminRepo.save(courseTermin);
                 lesson.addTermin(courseTermin);
+                lesson.setHasTermins(true);
             }
         } else {
             lesson.setStudentsUpperBound(1);
@@ -125,6 +127,7 @@ public class CourseService {
                     lessonTerminRepo.save(lessonTermin);
                     lessonTermin.setLesson(lesson);
                     lesson.addTermin(lessonTermin);
+                    lesson.setHasTermins(true);
             }
         }
         lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
@@ -157,6 +160,7 @@ public class CourseService {
             }
             terminRepo.deleteAll(lesson.getTermins());
             lesson.removeAllTermins();
+            lesson.setHasTermins(false);
             List<Thema> themas = new ArrayList<>();
             for (ThemaSimpleResponse themaData : courseRequest.getThemas()) {
                 Thema thema = new Thema();
@@ -173,6 +177,7 @@ public class CourseService {
                         .lesson(lesson).themas(themas).build();
                 courseTerminRepo.save(courseTermin);
                 lesson.addTermin(courseTermin);
+                lesson.setHasTermins(true);
             }
         } else {
             lesson.setStudentsUpperBound(1);
@@ -189,6 +194,7 @@ public class CourseService {
                 lessonTerminRepo.save(lessonTermin);
                 lessonTermin.setLesson(lesson);
                 lesson.addTermin(lessonTermin);
+                lesson.setHasTermins(true);
             }
         }
         lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));

@@ -95,6 +95,17 @@ public class UserController {
         return ResponseEntity.ok(userService.getUser(httpServletRequest));
     }
 
+    @GetMapping("/getLikedTeachers")
+    public ResponseEntity<Object> getLikedTeachers(HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(userService.getFavouriteTeachers(httpServletRequest.getHeader("Authorization")));
+    }
+
+    @GetMapping("/likeTeacher/{id}")
+    public ResponseEntity<Object> likeTeacher(@PathVariable int id, HttpServletRequest httpServletRequest) {
+        userService.likeTeacher(httpServletRequest.getHeader("Authorization"), id);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
 
 
 
