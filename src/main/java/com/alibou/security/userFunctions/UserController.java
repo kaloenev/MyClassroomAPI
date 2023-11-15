@@ -87,7 +87,14 @@ public class UserController {
 
     @GetMapping("/getTeacherProfile/{id}")
     public ResponseEntity<Object> getTeacherProfile(@PathVariable int id) {
-        return ResponseEntity.ok(userService.getTeacherPage(id));
+        try {
+            return ResponseEntity.ok(userService.getTeacherPage(id));
+        }
+        catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
     }
 
     @GetMapping("/getUser")

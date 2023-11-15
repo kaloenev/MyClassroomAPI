@@ -30,7 +30,7 @@ public interface CourseTerminRepo extends JpaRepository<CourseTermin, Integer> {
                 and (c.lesson.price between :priceLowerBound and :priceUpperBound)
                 and (c.courseHoursNumber between :hoursLowerBound and :hoursUpperBound)
                 and (c.dateTime between :lowerBound and :upperBound)
-                and c.isFull = :isFull""")
+                and c.isFull = :isFull and c.lesson.isPrivateLesson = :isPrivateLesson""")
     Page<Lesson> getFilteredCourseTermins(@Param("searchTerm") String searchTerm, @Param("searchTerm2") String searchTerm2,
                                           @Param("searchTerm3") String searchTerm3, @Param("subject") String subject,
                                           @Param("isDraft") boolean isDraft, @Param("grade") String grade,
@@ -38,5 +38,6 @@ public interface CourseTerminRepo extends JpaRepository<CourseTermin, Integer> {
                                           @Param("priceUpperBound") double priceUpperBound,
                                           @Param("hoursLowerBound") int hoursLowerBound, @Param("hoursUpperBound") int hoursUpperBound,
                                           @Param("lowerBound") Timestamp lowerBound, @Param("upperBound") Timestamp upperBound,
-                                          @Param("isFull") boolean isFull, Pageable pageable);
+                                          @Param("isFull") boolean isFull, @Param("isPrivateLesson") boolean isPrivateLesson,
+                                          Pageable pageable);
 }

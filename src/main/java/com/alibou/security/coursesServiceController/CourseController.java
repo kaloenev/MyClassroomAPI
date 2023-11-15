@@ -121,9 +121,14 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getLessonReviews(lessonRequest.getId(), lessonRequest.getSort(), lessonRequest.getPage()));
     }
 
-    @GetMapping("/getFilters")
-    public ResponseEntity<Object> getFilters() {
-        return ResponseEntity.ok(courseService.getFilters());
+    @GetMapping("/getCourseFilters")
+    public ResponseEntity<Object> getCourseFilters() {
+        return ResponseEntity.ok(courseService.getFilters(false));
+    }
+
+    @GetMapping("/getLessonFilters")
+    public ResponseEntity<Object> getLessonFilters() {
+        return ResponseEntity.ok(courseService.getFilters(true));
     }
 
     @GetMapping(value = "/image/{url}", consumes = MediaType.ALL_VALUE)

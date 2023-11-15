@@ -13,21 +13,38 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class CourseService {
     private final UserRepository repository;
     private final TokenRepository tokenRepository;
+
+    public static double LOWERMEDIAN_PRICE_COURSE;
+    public static double UPPERMEDIAN_PRICE_COURSE;
+    public static double SUM_PRICE_COURSE;
+    public static double COURSES_COUNT;
+    public static double BOTTOM20PRICE_COURSE;
+
+    public static double DEVIATION_COURSE = 0;
+    public static double BOTTOM40PRICE_COURSE;
+    public static double BOTTOM60PRICE_COURSE;
+    public static double BOTTOM80PRICE_COURSE;
+    public static double LOWERMEDIAN_PRICE_LESSON;
+    public static double UPPERMEDIAN_PRICE_LESSON;
+    public static double SUM_PRICE_LESSON;
+    public static double LESSONS_COUNT;
+    public static double BOTTOM20PRICE_LESSON;
+    public static double BOTTOM40PRICE_LESSON;
+    public static double BOTTOM60PRICE_LESSON;
+    public static double BOTTOM80PRICE_LESSON;
+    public static double DEVIATION_LESSON = 0;
+
 
     private final LessonRepository lessonRepository;
 
@@ -134,6 +151,11 @@ public class CourseService {
         lessonRepository.save(lesson);
         System.out.println(teacher.getId());
         teacher.addLesson(lesson);
+
+        if (!lesson.isDraft()) {
+            if (lesson.isPrivateLesson()) addNewPriceLesson(lesson.getPrice());
+            else addNewPriceCourse(lesson.getPrice());
+        }
     }
 
     public void editCourse(String token, int lessonID, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
@@ -198,6 +220,10 @@ public class CourseService {
             }
         }
         lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
+        if (!lesson.isDraft()) {
+            if (lesson.isPrivateLesson()) addNewPriceLesson(lesson.getPrice());
+            else addNewPriceCourse(lesson.getPrice());
+        }
     }
 
     private void checkForUnallowedChanges(Lesson lesson, CreateCourseRequest courseRequest) throws CustomException {
@@ -277,19 +303,28 @@ public class CourseService {
         teacherRepository.save(teacher);
     }
 
-    public FilterResponse getFilters() {
+    public FilterResponse getFilters(boolean isPrivateLesson) {
         List<String> subjects = lessonRepository.getAllSubjects();
         List<String> grades = lessonRepository.getAllGrades();
-        int minPrice = lessonRepository.getMinPrice();
-        int maxPrice = lessonRepository.getMaxPrice();
-        return new FilterResponse(subjects, grades, minPrice, maxPrice);
+        double[] prices;
+        if (isPrivateLesson) {
+            prices = new double[]{BOTTOM20PRICE_LESSON, BOTTOM40PRICE_LESSON,
+                    (LOWERMEDIAN_PRICE_LESSON + UPPERMEDIAN_PRICE_LESSON) / 2, BOTTOM60PRICE_LESSON, BOTTOM80PRICE_LESSON};
+        }
+        else {
+            prices = new double[]{BOTTOM20PRICE_COURSE,
+                    BOTTOM40PRICE_COURSE, (LOWERMEDIAN_PRICE_COURSE + UPPERMEDIAN_PRICE_COURSE) / 2, BOTTOM60PRICE_COURSE, BOTTOM80PRICE_COURSE};
+        }
+        Arrays.sort(prices);
+        return new FilterResponse(subjects, grades, prices);
     }
 
     public List<LessonResponse> getFilteredLessons(FilterRequest request) throws IllegalArgumentException, CustomException {
         List<LessonResponse> lessonResponses = new ArrayList<>();
         Pageable sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12);
-        String sort;
-        switch (request.getSort()) {
+        String sort = request.getSort();
+        if (sort == null) sort = "";
+        switch (sort) {
             case "Най-евтини" ->
                     sort = "c.lesson.price";
             case "Най-висок рейтинг" ->
@@ -303,18 +338,23 @@ public class CourseService {
             request.setPriceUpperBound(10000);
             request.setPriceLowerBound(0);
         }
+        if (request.getHoursUpperBound() == 0) request.setHoursUpperBound(2400);
+        if (request.getLowerBound() == null) request.setLowerBound(String.valueOf(Timestamp.valueOf(LocalDateTime.now())));
+        else request.setLowerBound(request.getLowerBound() + " 00:00:00");
+        if (request.getUpperBound() == null) request.setUpperBound(String.valueOf(new Timestamp(System.currentTimeMillis() + 31556926000L)));
+        else request.setUpperBound(request.getUpperBound() + " 23:59:59");
         Page<Lesson> lessons;
         int weekLength = -1;
         if (request.isPrivateLesson()) {
             lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                     request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                     request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
-                    Timestamp.valueOf(request.getUpperBound()), false, sortedAndPaged);
+                    Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
         } else {
             lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                     request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                     request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
-                    Timestamp.valueOf(request.getUpperBound()), false, sortedAndPaged);
+                    Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
             weekLength = 0;
         }
         for (Lesson lesson : lessons) {
@@ -656,5 +696,33 @@ public class CourseService {
             reviewResponses.add(new ReviewResponse(review));
         }
         return reviewResponses;
+    }
+
+    public void addNewPriceCourse(double newPrice) {
+        COURSES_COUNT++;
+        SUM_PRICE_COURSE += newPrice;
+        LOWERMEDIAN_PRICE_COURSE = (COURSES_COUNT % 2 == 1) ? newPrice : ((LOWERMEDIAN_PRICE_COURSE + UPPERMEDIAN_PRICE_COURSE) / 2);
+        UPPERMEDIAN_PRICE_COURSE = newPrice;
+        double average = SUM_PRICE_COURSE / COURSES_COUNT;
+        DEVIATION_COURSE = (COURSES_COUNT == 1) ? Math.abs(average - newPrice) : (DEVIATION_COURSE + Math.abs(average - newPrice))
+                / (COURSES_COUNT - 1);
+        BOTTOM20PRICE_COURSE = DEVIATION_COURSE * (-0.67) + average;
+        BOTTOM40PRICE_COURSE = DEVIATION_COURSE * (-0.26) + average;
+        BOTTOM60PRICE_COURSE = DEVIATION_COURSE * (0.26) + average;
+        BOTTOM80PRICE_COURSE = DEVIATION_COURSE * (0.67) + average;
+    }
+
+    public void addNewPriceLesson(double newPrice) {
+        LESSONS_COUNT++;
+        SUM_PRICE_LESSON += newPrice;
+        LOWERMEDIAN_PRICE_LESSON = (LESSONS_COUNT % 2 == 1) ? newPrice : ((LOWERMEDIAN_PRICE_LESSON + UPPERMEDIAN_PRICE_LESSON) / 2);
+        UPPERMEDIAN_PRICE_LESSON = newPrice;
+        double average = SUM_PRICE_LESSON / LESSONS_COUNT;
+        DEVIATION_LESSON = (LESSONS_COUNT == 1) ? Math.abs(average - newPrice) : (DEVIATION_LESSON + Math.abs(average - newPrice))
+                / (LESSONS_COUNT - 1);
+        BOTTOM20PRICE_LESSON = DEVIATION_LESSON * (-0.67) + average;
+        BOTTOM40PRICE_LESSON = DEVIATION_LESSON * (-0.26) + average;
+        BOTTOM60PRICE_LESSON = DEVIATION_LESSON * (0.26) + average;
+        BOTTOM80PRICE_LESSON = DEVIATION_LESSON * (0.67) + average;
     }
 }

@@ -187,7 +187,7 @@ public class UserService {
         return new VerificationFormResponse(City.values(), Degree.values());
     }
 
-    public TeacherResponse getTeacherPage(int teacherID) {
+    public TeacherResponse getTeacherPage(int teacherID) throws CustomException {
         Teacher teacher = (Teacher) userRepository.findUserById(teacherID);
         List<ReviewResponse> reviewResponses = new ArrayList<>();
         for (Review review : teacher.getReviews()) {
