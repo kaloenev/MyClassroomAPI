@@ -180,6 +180,59 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getTeacherCourses/{status}")
+    public ResponseEntity<Object> getTeacherCourses(HttpServletRequest httpServletRequest, @PathVariable String status) {
+        try {
+            return ResponseEntity.ok(courseService.getTeacherLessons(httpServletRequest.getHeader("Authorization"),
+                    status, false, false));
+        } catch (IllegalArgumentException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getTeacherLessons/{status}")
+    public ResponseEntity<Object> getTeacherLessons(HttpServletRequest httpServletRequest, @PathVariable String status) {
+        try {
+            return ResponseEntity.ok(courseService.getTeacherLessons(httpServletRequest.getHeader("Authorization"),
+                    status, true, false));
+        } catch (IllegalArgumentException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getLessonDates/{id}")
+    public ResponseEntity<Object> getLessonDates(HttpServletRequest httpServletRequest, @PathVariable int id) {
+        try {
+            return ResponseEntity.ok(courseService.getLessonTerminsTeacher(httpServletRequest.getHeader("Authorization"), id));
+        } catch (IllegalArgumentException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getCourseDates/{id}")
+    public ResponseEntity<Object> getCourseDates(HttpServletRequest httpServletRequest, @PathVariable int id) {
+        try {
+            return ResponseEntity.ok(courseService.getCourseTerminsTeacher(httpServletRequest.getHeader("Authorization"), id));
+        } catch (IllegalArgumentException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getTeacherUpcoming")
+    public ResponseEntity<Object> getTeacherUpcoming(HttpServletRequest httpServletRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getTeacherLessons(httpServletRequest.getHeader("Authorization"),
+                    "", false, true));
+        } catch (IllegalArgumentException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
 //    @PostMapping("/getLikedCourses")
 //    public ResponseEntity<Object> getLikedCourses(HttpServletRequest httpServletRequest) {
 //        try {

@@ -25,7 +25,7 @@ public class Termin {
     @GeneratedValue
     protected Integer terminID;
     @Enumerated(EnumType.STRING)
-    protected LessonStatus lessonStatus;
+    protected LessonStatus lessonStatus = LessonStatus.NOT_STARTED;
     private Timestamp dateTime;
     protected boolean isFull = false;
     protected boolean isEmpty = true;

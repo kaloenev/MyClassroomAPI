@@ -327,7 +327,7 @@ public class CourseService {
         switch (sort) {
             case "Най-евтини" ->
                     sort = "c.lesson.price";
-            case "Най-висок рейтинг" ->
+            case "Най-висок" ->
                     sort = "c.lesson.rating";
             case "Най-скоро започващи" ->
                     sort = "c.dateTime";
@@ -610,7 +610,8 @@ public class CourseService {
                         lessonResponses.add(lessonResponse);
                     }
                 }
-                else if (!lesson.isHasTermins() && lessonStatus.equals("Неактивни")) {
+                else if (lessonStatus.equals("Неактивни")) {
+                    if (lesson.isHasTermins()) continue;
                     LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
                     lessonResponse.setStatus("Неактивен");
                     lessonResponses.add(lessonResponse);
@@ -645,7 +646,7 @@ public class CourseService {
         lessonResponses.add(lessonResponse);
     }
 
-    public List<CourseTerminRequestResponse> getCourseTerminsTeacher(String token, int lessonId)throws CustomException {
+    public List<CourseTerminRequestResponse> getCourseTerminsTeacher(String token, int lessonId) throws CustomException {
         // TODO add to teacher exclusive functions
         List<CourseTermin> courseTermins = courseTerminRepo.getCourseTerminsByLessonID(lessonId);
         List<CourseTerminRequestResponse> courseTerminRequestResponses = new ArrayList<>();

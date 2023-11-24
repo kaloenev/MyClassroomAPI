@@ -199,8 +199,15 @@ public class UserService {
 
     public UserResponse getUser(HttpServletRequest httpServletRequest) {
         String token = httpServletRequest.getHeader("Authorization");
-        User user = userRepository.findUserByTokens_token(token.substring(7));
-        return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString());
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher != null) {
+            return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
+                    teacher.getRole().toString(), teacher.isVerified());
+        }
+        else {
+            User user = userRepository.findUserByTokens_token(token.substring(7));
+            return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(), true);
+        }
     }
 
     public void editStudentProfile() {

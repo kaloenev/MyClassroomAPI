@@ -14,4 +14,5 @@ public class UserResponse {
     private String name;
     private String surname;
     private String role;
+    private boolean isVerified;
 }
