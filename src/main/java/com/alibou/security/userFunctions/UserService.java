@@ -201,12 +201,22 @@ public class UserService {
         String token = httpServletRequest.getHeader("Authorization");
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher != null) {
-            return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
-                    teacher.getRole().toString(), teacher.isVerified());
+            if (teacher.isVerified()) {
+                return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
+                        teacher.getRole().toString(), teacher.isVerified(), false);
+            }
+            else if (teacher.getTimeOfVerificationRequest() != null) {
+                return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
+                        teacher.getRole().toString(), false, true);
+            }
+            else {
+                return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
+                        teacher.getRole().toString(), false, false);
+            }
         }
         else {
             User user = userRepository.findUserByTokens_token(token.substring(7));
-            return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(), true);
+            return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(), true, false);
         }
     }
 

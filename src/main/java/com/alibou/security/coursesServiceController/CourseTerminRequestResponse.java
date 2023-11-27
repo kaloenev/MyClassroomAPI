@@ -18,6 +18,8 @@ public class CourseTerminRequestResponse {
     private String endDate;
     private int weekLength;
     private String courseDays;
+
+    private int[] courseDaysNumbers;
     private String courseHours;
     private int studentsUpperBound;
     private int numberOfStudents;

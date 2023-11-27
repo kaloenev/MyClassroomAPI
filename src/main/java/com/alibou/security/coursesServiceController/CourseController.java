@@ -233,6 +233,14 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getSubjectGrades")
+    public ResponseEntity<Object> getSubjectGrades() {
+        return ResponseEntity.ok(courseService.getSubjectGrade());
+    }
+
+
+
+
 //    @PostMapping("/getLikedCourses")
 //    public ResponseEntity<Object> getLikedCourses(HttpServletRequest httpServletRequest) {
 //        try {

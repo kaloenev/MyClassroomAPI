@@ -21,7 +21,7 @@ public class CreateCourseRequest {
     private int studentsUpperBound;
     private int length;
     private double price;
-    private List<String> privateLessonTermins;
+    private List<LessonTerminRequest> privateLessonTermins;
     private List<CourseTerminRequestResponse> courseTerminRequests;
     private int[] nullVariables;
 

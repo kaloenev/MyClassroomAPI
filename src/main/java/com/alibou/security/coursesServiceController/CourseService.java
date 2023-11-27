@@ -94,7 +94,8 @@ public class CourseService {
 
     public void createCourse(String token, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (!teacher.isVerified()) throw new CustomException(HttpStatus.CONFLICT, "You must be verified to create a course");
+        if (!teacher.isVerified())
+            throw new CustomException(HttpStatus.CONFLICT, "You must be verified to create a course");
         System.out.println(teacher.getId());
         Lesson lesson = Lesson.builder().teacher(teacher).build();
         lesson.setTitle(courseRequest.getTitle());
@@ -112,11 +113,16 @@ public class CourseService {
             for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
                 List<Thema> themas = new ArrayList<>();
                 for (ThemaSimpleResponse themaData : courseRequest.getThemas()) {
-                    Thema thema = Thema.builder().description(themaData.getDescription()).title(themaData.getTitle()).build();
+                    Thema thema;
+                    if (themaData.getDescription() == null) {
+                        thema = Thema.builder().title(themaData.getTitle()).build();
+                    } else
+                        thema = Thema.builder().description(themaData.getDescription()).title(themaData.getTitle()).build();
                     themas.add(thema);
                 }
-                CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()))
-                        .courseDays(courseTerminRequest.getCourseDays())
+                CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()
+                                + " " + courseTerminRequest.getCourseHours() + ":00"))
+                        .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
                         .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                         .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
                         .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).build();
@@ -133,18 +139,22 @@ public class CourseService {
         } else {
             lesson.setStudentsUpperBound(1);
             lessonRepository.save(lesson);
-            for (String privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                Thema thema = new Thema();
-                thema.setDescription(courseRequest.getThemas()[0].getDescription());
-                thema.setTitle(courseRequest.getThemas()[0].getTitle());
+            for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
+                Thema thema;
+                if (courseRequest.getThemas()[0].getDescription() == null) {
+                    thema = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
+                } else {
+                    thema = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
+                            .title(courseRequest.getThemas()[0].getTitle()).build();
+                }
                 themaRepository.save(thema);
-                    String hours = privateLessonTermin.substring(privateLessonTermin.length() - 8);
-                    LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                            .dateTime(Timestamp.valueOf(privateLessonTermin)).thema(thema).build();
-                    lessonTerminRepo.save(lessonTermin);
-                    lessonTermin.setLesson(lesson);
-                    lesson.addTermin(lessonTermin);
-                    lesson.setHasTermins(true);
+                String hours = privateLessonTermin.getLessonHours();
+                LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
+                        .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema).build();
+                lessonTerminRepo.save(lessonTermin);
+                lessonTermin.setLesson(lesson);
+                lesson.addTermin(lessonTermin);
+                lesson.setHasTermins(true);
             }
         }
         lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
@@ -162,7 +172,8 @@ public class CourseService {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (!teacher.isVerified()) throw new CustomException(HttpStatus.CONFLICT, "Трябва да се верифицирате първо");
         Lesson lesson = lessonRepository.getLessonByLessonID(lessonID);
-        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.FORBIDDEN, "Имате достъп само до Вашите курсове");
+        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
+            throw new CustomException(HttpStatus.FORBIDDEN, "Имате достъп само до Вашите курсове");
         lesson.setTitle(courseRequest.getTitle());
         if (!isDraft) {
             checkForUnallowedChanges(lesson, courseRequest);
@@ -185,15 +196,19 @@ public class CourseService {
             lesson.setHasTermins(false);
             List<Thema> themas = new ArrayList<>();
             for (ThemaSimpleResponse themaData : courseRequest.getThemas()) {
-                Thema thema = new Thema();
-                thema.setDescription(themaData.getDescription());
-                thema.setTitle(themaData.getTitle());
+                Thema thema;
+                if (themaData.getDescription() == null) {
+                    thema = Thema.builder().title(themaData.getTitle()).build();
+                } else
+                    thema = Thema.builder().description(themaData.getDescription()).title(themaData.getTitle()).build();
+                themas.add(thema);
                 themaRepository.save(thema);
                 themas.add(thema);
             }
             for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
-                CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()))
-                        .courseDays(courseTerminRequest.getCourseDays())
+                CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()
+                                + " " + courseTerminRequest.getCourseHours() + ":00"))
+                        .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
                         .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                         .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
                         .lesson(lesson).themas(themas).build();
@@ -205,14 +220,18 @@ public class CourseService {
             lesson.setStudentsUpperBound(1);
             terminRepo.deleteAll(lesson.getTermins());
             lesson.removeAllTermins();
-            for (String privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                Thema thema = new Thema();
-                thema.setDescription(courseRequest.getThemas()[0].getDescription());
-                thema.setTitle(courseRequest.getThemas()[0].getTitle());
+            for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
+                Thema thema;
+                if (courseRequest.getThemas()[0].getDescription() == null) {
+                    thema = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
+                } else {
+                    thema = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
+                            .title(courseRequest.getThemas()[0].getTitle()).build();
+                }
                 themaRepository.save(thema);
-                String hours = privateLessonTermin.substring(privateLessonTermin.length() - 8);
+                String hours = privateLessonTermin.getLessonHours();
                 LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                        .dateTime(Timestamp.valueOf(privateLessonTermin)).thema(thema).build();
+                        .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema).build();
                 lessonTerminRepo.save(lessonTermin);
                 lessonTermin.setLesson(lesson);
                 lesson.addTermin(lessonTermin);
@@ -224,6 +243,23 @@ public class CourseService {
             if (lesson.isPrivateLesson()) addNewPriceLesson(lesson.getPrice());
             else addNewPriceCourse(lesson.getPrice());
         }
+    }
+
+    private String getDaysOfWeek(int[] days) throws CustomException {
+        StringBuilder daysOfWeek = new StringBuilder();
+        for (int i : days) {
+            switch (i) {
+                case 1 -> daysOfWeek.append("Ponedelnik");
+                case 2 -> daysOfWeek.append("Vtornik");
+                case 3 -> daysOfWeek.append("Srqda");
+                case 4 -> daysOfWeek.append("Chetvurtuk");
+                case 5 -> daysOfWeek.append("Petuk");
+                case 6 -> daysOfWeek.append("Subota");
+                case 7 -> daysOfWeek.append("Nedelq");
+                default -> throw new CustomException(HttpStatus.BAD_REQUEST, "Days of the week are 1-7");
+            }
+        }
+        return daysOfWeek.toString();
     }
 
     private void checkForUnallowedChanges(Lesson lesson, CreateCourseRequest courseRequest) throws CustomException {
@@ -269,8 +305,7 @@ public class CourseService {
                 String[] days = termins.get(0).getCourseDays().split(",");
                 lessonResponse.setWeekLength(weekLength);
                 lessonResponse.setPricePerHour(lesson.getPrice() / (days.length * weekLength));
-            }
-            else {
+            } else {
                 termins2 = lesson.getLessonTermins();
                 lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
                 lessonResponse.setPricePerHour(lesson.getPrice());
@@ -310,13 +345,27 @@ public class CourseService {
         if (isPrivateLesson) {
             prices = new double[]{BOTTOM20PRICE_LESSON, BOTTOM40PRICE_LESSON,
                     (LOWERMEDIAN_PRICE_LESSON + UPPERMEDIAN_PRICE_LESSON) / 2, BOTTOM60PRICE_LESSON, BOTTOM80PRICE_LESSON};
-        }
-        else {
+        } else {
             prices = new double[]{BOTTOM20PRICE_COURSE,
                     BOTTOM40PRICE_COURSE, (LOWERMEDIAN_PRICE_COURSE + UPPERMEDIAN_PRICE_COURSE) / 2, BOTTOM60PRICE_COURSE, BOTTOM80PRICE_COURSE};
         }
         Arrays.sort(prices);
         return new FilterResponse(subjects, grades, prices);
+    }
+
+    public FilterResponse getSubjectGrade() {
+        List<String> subjects = new ArrayList<>();
+        for (Subject subject : Subject.values()) {
+            subjects.add(subject.toString());
+        }
+        List<String> grades = new ArrayList<>();
+        for (Grade grade : Grade.values()) {
+            grades.add(grade.toString());
+        }
+        FilterResponse filterResponse = new FilterResponse();
+        filterResponse.setGrades(grades);
+        filterResponse.setSubjects(subjects);
+        return filterResponse;
     }
 
     public List<LessonResponse> getFilteredLessons(FilterRequest request) throws IllegalArgumentException, CustomException {
@@ -325,23 +374,21 @@ public class CourseService {
         String sort = request.getSort();
         if (sort == null) sort = "";
         switch (sort) {
-            case "Най-евтини" ->
-                    sort = "c.lesson.price";
-            case "Най-висок" ->
-                    sort = "c.lesson.rating";
-            case "Най-скоро започващи" ->
-                    sort = "c.dateTime";
-            default ->
-                    sort = "c.lesson.popularity";
+            case "Най-евтини" -> sort = "c.lesson.price";
+            case "Най-висок" -> sort = "c.lesson.rating";
+            case "Най-скоро започващи" -> sort = "c.dateTime";
+            default -> sort = "c.lesson.popularity";
         }
         if (request.getPriceLowerBound() >= 0 && request.getPriceUpperBound() == 0) {
             request.setPriceUpperBound(10000);
             request.setPriceLowerBound(0);
         }
         if (request.getHoursUpperBound() == 0) request.setHoursUpperBound(2400);
-        if (request.getLowerBound() == null) request.setLowerBound(String.valueOf(Timestamp.valueOf(LocalDateTime.now())));
+        if (request.getLowerBound() == null)
+            request.setLowerBound(String.valueOf(Timestamp.valueOf(LocalDateTime.now())));
         else request.setLowerBound(request.getLowerBound() + " 00:00:00");
-        if (request.getUpperBound() == null) request.setUpperBound(String.valueOf(new Timestamp(System.currentTimeMillis() + 31556926000L)));
+        if (request.getUpperBound() == null)
+            request.setUpperBound(String.valueOf(new Timestamp(System.currentTimeMillis() + 31556926000L)));
         else request.setUpperBound(request.getUpperBound() + " 23:59:59");
         Page<Lesson> lessons;
         int weekLength = -1;
@@ -370,8 +417,7 @@ public class CourseService {
                 String[] days = termins.get(0).getCourseDays().split(",");
                 lessonResponse.setWeekLength(weekLength1);
                 lessonResponse.setPricePerHour(lesson.getPrice() / (days.length * weekLength1));
-            }
-            else {
+            } else {
                 termins2 = lesson.getLessonTermins();
                 lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
                 lessonResponse.setPricePerHour(lesson.getPrice());
@@ -407,8 +453,7 @@ public class CourseService {
             if (lesson1.isPrivateLesson()) {
                 List<LessonTermin> lessonTermins = lesson1.getLessonTermins();
                 lessonResponses.add(new LessonResponse(lesson1, lessonTermins.get(0).getDate(), lessonTermins.get(0).getTime(), 0));
-            }
-            else {
+            } else {
                 List<CourseTermin> courseTermins = lesson1.getCourseTermins();
                 lessonResponses.add(new LessonResponse(lesson1, courseTermins.get(0).getDate(), courseTermins.get(0).getTime(),
                         courseTermins.get(0).getStudentsUpperBound() - courseTermins.get(0).getPlacesRemaining()));
@@ -462,7 +507,7 @@ public class CourseService {
         }
         while (counter <= lessonsLength) {
             LessonResponse lessonResponse;
-            LessonTermin  lessonTermin = lessonTermins.get(counter);
+            LessonTermin lessonTermin = lessonTermins.get(counter);
             if (!lessonTermin.getLessonStatus().equals(lessonStatus)) continue;
             Lesson lesson = lessonTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
@@ -531,8 +576,7 @@ public class CourseService {
                         lessonResponse = new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
                                 termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
                         lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
-                    }
-                    else {
+                    } else {
                         termins2 = lesson.getLessonTermins();
                         lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
                     }
@@ -540,8 +584,7 @@ public class CourseService {
                 }
                 return lessonResponses;
             }
-            default ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
+            default -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
         }
         List<Lesson> lessons = lessonRepository.getLessonByisLikedByStudent_id(student.getId(), sortedAndPaged);
         for (Lesson lesson : lessons) {
@@ -553,8 +596,7 @@ public class CourseService {
                 lessonResponse = new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
                         termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
                 lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
-            }
-            else {
+            } else {
                 termins2 = lesson.getLessonTermins();
                 lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
             }
@@ -582,12 +624,11 @@ public class CourseService {
                 if (lesson.isHasTermins()) {
                     fillLessonResponseList(lessonResponses, lesson);
                 }
-            }
-            else if (lesson.isPrivateLesson() == privateLessons) {
-                if (lesson.isDraft() && lessonStatus.equals("Чернови")) {
+            } else if (lesson.isPrivateLesson() == privateLessons) {
+                if (lesson.isDraft() && lessonStatus.equals("Draft")) {
                     if (!lesson.isHasTermins()) {
                         LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
-                        lessonResponse.setStatus("Чернова");
+                        lessonResponse.setStatus("Draft");
                         lessonResponses.add(lessonResponse);
                     } else {
                         List<CourseTermin> termins;
@@ -599,27 +640,24 @@ public class CourseService {
                                     termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
                             lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
                             lessonResponse.setNumberOfTermins(termins.size());
-                        }
-                        else {
+                        } else {
                             termins2 = lesson.getLessonTermins();
                             lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
                             lessonResponse.setNumberOfTermins(termins2.size());
                         }
 
-                        lessonResponse.setStatus("Чернова");
+                        lessonResponse.setStatus("Draft");
                         lessonResponses.add(lessonResponse);
                     }
-                }
-                else if (lessonStatus.equals("Неактивни")) {
+                } else if (lessonStatus.equals("Inactive")) {
                     if (lesson.isHasTermins()) continue;
                     LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
-                    lessonResponse.setStatus("Неактивен");
+                    lessonResponse.setStatus("Inactive");
                     lessonResponses.add(lessonResponse);
-                }
-                else if (lesson.isHasTermins() && lessonStatus.equals("Активни")) {
+                } else if (lesson.isHasTermins() && lessonStatus.equals("Active")) {
                     fillLessonResponseList(lessonResponses, lesson);
-                }
-                else throw new CustomException(HttpStatus.BAD_REQUEST, "Моля изберете някой от предложените статуси през интерфейса");
+                } else
+                    throw new CustomException(HttpStatus.BAD_REQUEST, "Моля изберете някой от предложените статуси през интерфейса");
             }
         }
         return lessonResponses;
@@ -635,14 +673,13 @@ public class CourseService {
                     termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
             lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
             lessonResponse.setNumberOfTermins(termins.size());
-        }
-        else {
+        } else {
             termins2 = lesson.getLessonTermins();
             lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
             lessonResponse.setNumberOfTermins(termins2.size());
         }
 
-        lessonResponse.setStatus("Активен");
+        lessonResponse.setStatus("Active");
         lessonResponses.add(lessonResponse);
     }
 
