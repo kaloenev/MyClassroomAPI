@@ -8,9 +8,10 @@ import java.util.List;
 
 public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     Lesson getLessonByLessonID(int id);
-    List<Lesson> getDistinct9ByOrderByPopularityDesc();
+    //TODO find a way to remove drafts from results in next 2 queries
+    List<Lesson> findTop12ByOrderByPopularityDesc();
 
-    List<Lesson> getDistinct4BySubjectOrGradeOrderByPopularityDesc(String subject, String grade);
+    List<Lesson> findTop4BySubjectOrGradeOrderByPopularityDesc(String subject, String grade);
 
     List<Lesson> getLessonByisLikedByStudent_id(int studentID, Pageable pageable);
     @Query("SELECT distinct l.subject from Lesson l order by l.subject ASC")

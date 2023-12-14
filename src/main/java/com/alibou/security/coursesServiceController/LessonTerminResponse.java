@@ -11,13 +11,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LessonTerminResponse {
+    private int lessonTerminId;
     private String date;
     private List<TimePair> times;
     private String time;
     private String dayOfTheWeek;
     private String status;
 
-    public LessonTerminResponse(String date, String time) {
+    public LessonTerminResponse(int id, String date, String time) {
+        this.lessonTerminId = id;
         this.date = date;
         this.time = time;
     }

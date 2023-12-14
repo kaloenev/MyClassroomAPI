@@ -46,6 +46,20 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/editCourse/{id}")
+    public ResponseEntity<Object> editCourse(@PathVariable int id,
+            @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+    ) {
+        try {
+            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, false, false);
+        }
+        catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/saveCourseDraft")
     public ResponseEntity<Object> saveCourseDraft(
             @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
@@ -59,12 +73,51 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/editCourseDraft/{id}")
+    public ResponseEntity<Object> editCourseDraft(@PathVariable int id,
+            @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+    ) {
+        try {
+            courseService.editCourse(httpRequest.getHeader("Authorization"),id, request, true, false);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/createPrivateLesson")
     public ResponseEntity<Object> createPrivateLesson(
             @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
     ) {
         try {
             courseService.createCourse(httpRequest.getHeader("Authorization"), request, false, true);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/editPrivateLessonDraft/{id}")
+    public ResponseEntity<Object> editPrivateLessonDraft(@PathVariable int id,
+                                                    @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+    ) {
+        try {
+            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, true,true);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/editPrivateLesson/{id}")
+    public ResponseEntity<Object> editPrivateLesson(@PathVariable int id,
+            @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+    ) {
+        try {
+            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, false,true);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -154,11 +207,31 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getLessonClassroomPage/{id}")
+    public ResponseEntity<Object> getClassroomPage(HttpServletRequest httpServletRequest, @PathVariable int id) {
+        try {
+            return ResponseEntity.ok(courseService.getClassroomPage(httpServletRequest.getHeader("Authorization"), id, true));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getCourseClassroomPage/{id}")
+    public ResponseEntity<Object> getCourseClassroomPage(HttpServletRequest httpServletRequest, @PathVariable int id) {
+        try {
+            return ResponseEntity.ok(courseService.getClassroomPage(httpServletRequest.getHeader("Authorization"), id, false));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @PostMapping("/getDashboard/student")
     public ResponseEntity<Object> getStudentDashboard(HttpServletRequest httpServletRequest, @RequestParam String lessonStatus,
                                                       @RequestParam String sort) {
         try {
-            return ResponseEntity.ok(courseService.getStudentAll(httpServletRequest.getHeader("Authentication"),
+            return ResponseEntity.ok(courseService.getStudentAll(httpServletRequest.getHeader("Authorization"),
                     LessonStatus.valueOf(lessonStatus), sort));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
@@ -206,6 +279,17 @@ public class CourseController {
     public ResponseEntity<Object> getLessonDates(HttpServletRequest httpServletRequest, @PathVariable int id) {
         try {
             return ResponseEntity.ok(courseService.getLessonTerminsTeacher(httpServletRequest.getHeader("Authorization"), id));
+        } catch (IllegalArgumentException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/publishDraft/{id}")
+    public ResponseEntity<Object> publishLesson(HttpServletRequest httpServletRequest, @PathVariable int id) {
+        try {
+            courseService.publishDraft(httpServletRequest.getHeader("Authorization"), id);
+            return ResponseEntity.ok("Успешно публикуване на урока");
         } catch (IllegalArgumentException | CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

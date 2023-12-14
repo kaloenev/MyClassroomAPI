@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CourseTerminRequestResponse {
+    private int courseTerminId;
     private String startDate;
     private String endDate;
     private int weekLength;
@@ -27,6 +28,7 @@ public class CourseTerminRequestResponse {
     private String lessonStatus;
 
     public CourseTerminRequestResponse(CourseTermin courseTermin) {
+        courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();
         weekLength = courseTermin.getWeekLength();
         courseDays = courseTermin.getCourseDays();
@@ -37,6 +39,7 @@ public class CourseTerminRequestResponse {
     }
 
     public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus) {
+        courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();
         courseDays = courseTermin.getCourseDays();
         courseHours = courseTermin.getTime();
