@@ -86,6 +86,7 @@ public class LessonResponse {
         teacherSurname = teacher.getLastname();
         teacherId = teacher.getId();
         this.numberOfStudents = numberOfStudents;
+        this.isPrivateLesson = lesson.isPrivateLesson();
     }
 
     public LessonResponse(Lesson lesson, List<ReviewResponse> reviews) throws CustomException {
@@ -122,6 +123,7 @@ public class LessonResponse {
         Teacher teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
+        this.isPrivateLesson = lesson.isPrivateLesson();
     }
 
     public LessonResponse(Lesson lesson, List<LessonTerminResponse> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
@@ -143,6 +145,7 @@ public class LessonResponse {
         var teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
+        this.isPrivateLesson = lesson.isPrivateLesson();
     }
 
     public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {

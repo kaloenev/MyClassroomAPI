@@ -23,20 +23,20 @@ public class SecurityApplication {
 		SpringApplication.run(SecurityApplication.class, args);
 	}
 
-	@Bean
-	public CommandLineRunner commandLineRunner(
-			LessonRepository lessonRepository,
-			CourseService courseService
-	) {
-		return args -> {
-			List<Double> prices = lessonRepository.getPrivateLessonPrices();
-			for (Double price : prices) {
-				courseService.addNewPriceLesson(price);
-			}
-			List<Double> prices2 = lessonRepository.getCoursePrices();
-			for (Double price : prices2) {
-				courseService.addNewPriceCourse(price);
-			}
-		};
-	}
+//	@Bean
+//	public CommandLineRunner commandLineRunner(
+//			LessonRepository lessonRepository,
+//			CourseService courseService
+//	) {
+//		return args -> {
+//			List<Double> prices = lessonRepository.getPrivateLessonPrices();
+//			for (Double price : prices) {
+//				courseService.addNewPriceLesson(price);
+//			}
+//			List<Double> prices2 = lessonRepository.getCoursePrices();
+//			for (Double price : prices2) {
+//				courseService.addNewPriceCourse(price);
+//			}
+//		};
+//	}
 }

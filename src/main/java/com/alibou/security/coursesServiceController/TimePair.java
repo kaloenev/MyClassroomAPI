@@ -10,6 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TimePair {
+    private int lessonTerminId;
     private String time;
     private boolean isBooked;
 }

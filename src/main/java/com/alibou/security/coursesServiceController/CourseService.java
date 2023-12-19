@@ -31,7 +31,7 @@ public class CourseService {
     public static double COURSES_COUNT;
     public static double BOTTOM20PRICE_COURSE;
 
-    public static double DEVIATION_COURSE = 0;
+    public static double DEVIATION_COURSE;
     public static double BOTTOM40PRICE_COURSE;
     public static double BOTTOM60PRICE_COURSE;
     public static double BOTTOM80PRICE_COURSE;
@@ -43,7 +43,7 @@ public class CourseService {
     public static double BOTTOM40PRICE_LESSON;
     public static double BOTTOM60PRICE_LESSON;
     public static double BOTTOM80PRICE_LESSON;
-    public static double DEVIATION_LESSON = 0;
+    public static double DEVIATION_LESSON;
 
 
     private final LessonRepository lessonRepository;
@@ -155,7 +155,7 @@ public class CourseService {
                             .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).build();
+                            .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
                     courseTerminRepo.save(courseTermin);
                     for (Thema thema : themas) {
                         thema.setCourseTermin(courseTermin);
@@ -185,7 +185,8 @@ public class CourseService {
                     }
                     String hours = privateLessonTermin.getLessonHours();
                     LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                            .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema).build();
+                            .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema)
+                            .lessonStatus(LessonStatus.NOT_STARTED).build();
                     lessonTerminRepo.save(lessonTermin);
                     lessonTermin.setLesson(lesson);
                     lesson.addTermin(lessonTermin);
@@ -250,7 +251,7 @@ public class CourseService {
                             .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).themas(themas).build();
+                            .lesson(lesson).themas(themas).lessonStatus(LessonStatus.NOT_STARTED).build();
                     courseTerminRepo.save(courseTermin);
                     lesson.addTermin(courseTermin);
                     lesson.setHasTermins(true);
@@ -276,7 +277,8 @@ public class CourseService {
                     }
                     String hours = privateLessonTermin.getLessonHours();
                     LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                            .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema).build();
+                            .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema)
+                            .lessonStatus(LessonStatus.NOT_STARTED).build();
                     lessonTerminRepo.save(lessonTermin);
                     lessonTermin.setLesson(lesson);
                     lesson.addTermin(lessonTermin);
@@ -720,46 +722,50 @@ public class CourseService {
         List<Lesson> lessons = teacher.getLessons();
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
-            if (lessonStatus.equals("All")) {
-                if (lesson.isDraft()) {
-                    if (lesson.isHasTermins()) {
-                        fillLessonResponseList(lessonResponses, lesson, "Draft");
-                    } else {
-                        LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
-                        lessonResponse.setStatus("Draft");
-                        lessonResponses.add(lessonResponse);
-                    }
-                }
-                else if (lesson.isHasTermins()) fillLessonResponseList(lessonResponses, lesson, "Active");
-                else {
-                    LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
-                    lessonResponse.setStatus("Inactive");
-                    lessonResponses.add(lessonResponse);
-                }
-            }
-            else if (upcoming) {
+            if (upcoming) {
                 if (lesson.isHasTermins()) {
                     fillLessonResponseList(lessonResponses, lesson, "Active");
                 }
             } else if (lesson.isPrivateLesson() == privateLessons) {
-                if (lessonStatus.equals("Draft")) {
-                    if (!lesson.isDraft()) continue;
-                    if (!lesson.isHasTermins()) {
+                switch (lessonStatus) {
+                    case "All":
+                        if (lesson.isDraft()) {
+                            if (lesson.isHasTermins()) {
+                                fillLessonResponseList(lessonResponses, lesson, "Draft");
+                            } else {
+                                LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
+                                lessonResponse.setStatus("Draft");
+                                lessonResponses.add(lessonResponse);
+                            }
+                        } else if (lesson.isHasTermins()) fillLessonResponseList(lessonResponses, lesson, "Active");
+                        else {
+                            LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
+                            lessonResponse.setStatus("Inactive");
+                            lessonResponses.add(lessonResponse);
+                        }
+                        break;
+                    case "Draft":
+                        if (!lesson.isDraft()) continue;
+                        if (!lesson.isHasTermins()) {
+                            LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
+                            lessonResponse.setStatus("Draft");
+                            lessonResponses.add(lessonResponse);
+                        } else {
+                            fillLessonResponseList(lessonResponses, lesson, "Draft");
+                        }
+                        break;
+                    case "Inactive":
+                        if (lesson.isHasTermins() || lesson.isDraft()) continue;
                         LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
-                        lessonResponse.setStatus("Draft");
+                        lessonResponse.setStatus("Inactive");
                         lessonResponses.add(lessonResponse);
-                    } else {
-                        fillLessonResponseList(lessonResponses, lesson, "Draft");
-                    }
-                } else if (lessonStatus.equals("Inactive") && !lesson.isDraft()) {
-                    if (lesson.isHasTermins()) continue;
-                    LessonResponse lessonResponse = new LessonResponse(lesson, "", "", 0);
-                    lessonResponse.setStatus("Inactive");
-                    lessonResponses.add(lessonResponse);
-                } else if (lessonStatus.equals("Active")) {
-                    if (lesson.isHasTermins()) fillLessonResponseList(lessonResponses, lesson, "Active");
-                } else
-                    throw new CustomException(HttpStatus.BAD_REQUEST, "Моля изберете някой от предложените статуси през интерфейса");
+                        break;
+                    case "Active":
+                        if (lesson.isHasTermins()) fillLessonResponseList(lessonResponses, lesson, "Active");
+                        break;
+                    default:
+                        throw new CustomException(HttpStatus.BAD_REQUEST, "Моля изберете някой от предложените статуси през интерфейса");
+                }
             }
         }
         return lessonResponses;
@@ -790,7 +796,8 @@ public class CourseService {
         List<CourseTermin> courseTermins = courseTerminRepo.getCourseTerminsByLessonID(lessonId);
         List<CourseTerminRequestResponse> courseTerminRequestResponses = new ArrayList<>();
         for (CourseTermin courseTermin : courseTermins) {
-            courseTerminRequestResponses.add(new CourseTerminRequestResponse(courseTermin, courseTermin.getLessonStatus()));
+            courseTerminRequestResponses.add(new CourseTerminRequestResponse(courseTermin, courseTermin.getLessonStatus(),
+                    courseTermin.getLesson().getLength()));
         }
         return courseTerminRequestResponses;
     }
@@ -805,9 +812,9 @@ public class CourseService {
         List<TimePair> timePairs = new ArrayList<>();
         for (LessonTermin lessonTermin : lessonTermins) {
             int currentDayOfMonth = lessonTermin.getDateTime().toLocalDateTime().getDayOfMonth();
-            TimePair timePair = new TimePair(lessonTermin.getTime(), lessonTermin.isFull());
+            TimePair timePair = new TimePair(lessonTermin.getTerminID(), lessonTermin.getTime(), lessonTermin.isFull());
             timePairs.add(timePair);
-            if (dayOfMonth != -1 && currentDayOfMonth != dayOfMonth) {
+            if (dayOfMonth != -1 && currentDayOfMonth != dayOfMonth && counter != lessonTerminsSize) {
                 dayOfMonth = currentDayOfMonth;
             } else if (currentDayOfMonth != dayOfMonth || counter == lessonTerminsSize) {
                 LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonTermin.getDate()).times(timePairs)

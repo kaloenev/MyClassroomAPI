@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneId;
 
 @Getter
 @Setter
@@ -38,11 +40,14 @@ public class CourseTerminRequestResponse {
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
     }
 
-    public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus) {
+    public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus, int length) {
         courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();
         courseDays = courseTermin.getCourseDays();
-        courseHours = courseTermin.getTime();
+        weekLength = courseTermin.getWeekLength();
+        Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
+                + length * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+        courseHours = courseTermin.getTime()  + " - " + timestamp.toString().substring(11, 16);
         studentsUpperBound = courseTermin.getStudentsUpperBound();
         numberOfStudents = studentsUpperBound - courseTermin.getPlacesRemaining();
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
