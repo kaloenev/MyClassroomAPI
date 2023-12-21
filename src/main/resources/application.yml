@@ -9,9 +9,6 @@ spring:
       ddl-auto: update
       dialect : org.hibernate.dialect.SQLServer2016Dialect
 
-server:
-  port: 9191
-
 application:
   security:
     jwt:
