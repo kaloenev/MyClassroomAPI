@@ -137,7 +137,7 @@ public class CourseService {
         if (!isPrivateLesson) {
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
             lessonRepository.save(lesson);
-            if (courseRequest.getCourseTerminRequests() != null) {
+            if (courseRequest.getCourseTerminRequests() != null && !courseRequest.getCourseTerminRequests().isEmpty()) {
                 for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
                     List<Thema> themas = new ArrayList<>();
                     if (courseRequest.getThemas() != null) {
@@ -171,7 +171,7 @@ public class CourseService {
         } else {
             lesson.setStudentsUpperBound(1);
             lessonRepository.save(lesson);
-            if (courseRequest.getCourseTerminRequests() != null) {
+            if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
                     Thema thema = null;
                     if (courseRequest.getThemas() != null) {
@@ -206,6 +206,7 @@ public class CourseService {
     }
 
     public void editCourse(String token, int lessonID, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
+        // TODO Check if the teacher has access to the course with lessonID
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (!teacher.isVerified()) throw new CustomException(HttpStatus.CONFLICT, "Трябва да се верифицирате първо");
         Lesson lesson = lessonRepository.getLessonByLessonID(lessonID);
@@ -244,7 +245,7 @@ public class CourseService {
                     themas.add(thema);
                 }
             }
-            if (courseRequest.getCourseTerminRequests() != null) {
+            if (courseRequest.getCourseTerminRequests() != null && !courseRequest.getCourseTerminRequests().isEmpty()) {
                 for (CourseTerminRequestResponse courseTerminRequest : courseRequest.getCourseTerminRequests()) {
                     CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()
                                     + " " + courseTerminRequest.getCourseHours() + ":00"))
@@ -263,7 +264,7 @@ public class CourseService {
             lesson.setStudentsUpperBound(1);
             terminRepo.deleteAll(lesson.getTermins());
             lesson.removeAllTermins();
-            if (courseRequest.getCourseTerminRequests() != null) {
+            if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
                     Thema thema = null;
                     if (courseRequest.getThemas() != null) {
@@ -510,6 +511,71 @@ public class CourseService {
                 lessonResponse.setWeekLength(courseTermins.get(0).getWeekLength());
             }
         }
+        return lessonResponses;
+    }
+
+    public void addDate(CourseTerminRequestResponse courseRequest, int id, String token) throws CustomException {
+        //TODO Check if the teacher has access to the course with id
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Lesson lesson = lessonRepository.getLessonByLessonID(id);
+        if (lesson.isPrivateLesson()) {
+            String hours = courseRequest.getCourseHours();
+            LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
+                    .dateTime(Timestamp.valueOf(courseRequest.getStartDate() + " " + hours + ":00")).thema(lesson.getLessonTermins().get(0).getThema())
+                    .lessonStatus(LessonStatus.NOT_STARTED).build();
+            lessonTerminRepo.save(lessonTermin);
+            lesson.setHasTermins(true);
+            lesson.addTermin(lessonTermin);
+        } else {
+            CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseRequest.getStartDate()
+                            + " " + courseRequest.getCourseHours() + ":00"))
+                    .courseDays(getDaysOfWeek(courseRequest.getCourseDaysNumbers()))
+                    .courseHoursNumber(Integer.parseInt(courseRequest.getCourseHours().replace(":", "")))
+                    .weekLength(courseRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
+                    .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
+            courseTerminRepo.save(courseTermin);
+            List<Thema> themas = lesson.getCourseTermins().get(0).getThemas();
+            for (Thema thema : themas) {
+                Thema thema1 = new Thema();
+                thema1.setDescription(thema.getDescription());
+                thema1.setTitle(thema.getDescription());
+                thema1.setCourseTermin(courseTermin);
+                themaRepository.save(thema1);
+                courseTermin.addThema(thema1);
+            }
+            courseTerminRepo.save(courseTermin);
+            lesson.setHasTermins(true);
+            lesson.addTermin(courseTermin);
+        }
+        lessonRepository.save(lesson);
+    }
+
+    public List<LessonResponse> getCourseInformation(int id, String token) throws CustomException {
+        //TODO Check if the teacher has access to the course with id
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        var lesson = lessonRepository.getLessonByLessonID(id);
+        LessonResponse lessonResponse;
+        if (lesson.isPrivateLesson()) {
+            List<LessonTermin> lessonTermins = lesson.getLessonTermins();
+            List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
+            ThemaSimpleResponse thema = new ThemaSimpleResponse(lessonTermins.get(0).getThema().getTitle(), lessonTermins.get(0).getThema().getDescription());
+            for (LessonTermin lessonTermin : lessonTermins) {
+                Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
+                        + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+                lessonTerminResponses.add(new LessonTerminResponse(lessonTermin.getTerminID(), lessonTermin.getDate(),
+                        lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)));
+            }
+            lessonResponse = new LessonResponse(lesson, lessonTerminResponses, null, thema);
+            lessonResponse.setTeacherResponse(null);
+            lessonResponse.setPricePerHour(lessonResponse.getPrice());
+        } else {
+            lessonResponse = new LessonResponse(lesson, null);
+            lessonResponse.setTeacherResponse(null);
+        }
+        List<LessonResponse> lessonResponses = new ArrayList<>();
+        lessonResponses.add(lessonResponse);
         return lessonResponses;
     }
 
@@ -769,6 +835,32 @@ public class CourseService {
             }
         }
         return lessonResponses;
+    }
+
+    public void editDescription (String description, int themaId, String token) throws CustomException {
+        //TODO check if thema belongs to teacher
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Thema thema = themaRepository.getThemaByThemaID(themaId);
+        thema.setDescription(description);
+        themaRepository.save(thema);
+    }
+
+    public void addLinkToRecording (String linkToRecording, int themaId, String token) throws CustomException {
+        //TODO check if thema belongs to teacher
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Thema thema = themaRepository.getThemaByThemaID(themaId);
+        thema.setLinkToRecording(linkToRecording);
+        themaRepository.save(thema);
+    }
+
+    public String getLinkToRecording (int themaId, String token) throws CustomException {
+        //TODO check if thema belongs to teacher
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Thema thema = themaRepository.getThemaByThemaID(themaId);
+        return thema.getLinkToRecording();
     }
 
     private void fillLessonResponseList(List<LessonResponse> lessonResponses, Lesson lesson, String lessonStatus) throws CustomException {

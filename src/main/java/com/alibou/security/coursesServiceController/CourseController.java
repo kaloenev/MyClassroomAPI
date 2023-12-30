@@ -10,10 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -158,6 +155,30 @@ public class CourseController {
         }
     }
 
+    @PostMapping("/editThemaDescription/{id}")
+    public ResponseEntity<Object> editThemaDescription(@PathVariable int id, @RequestBody ThemaRequest themaRequest,
+                                                       HttpServletRequest httpRequest) {
+        try {
+            courseService.editDescription(themaRequest.getDescription(), id, httpRequest.getHeader("Authorization"));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/addLinkToRecording/{id}")
+    public ResponseEntity<Object> addLinkToRecording(@PathVariable int id, @RequestBody ThemaRequest themaRequest,
+                                                       HttpServletRequest httpRequest) {
+        try {
+            courseService.addLinkToRecording(themaRequest.getLinkToRecording(), id, httpRequest.getHeader("Authorization"));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/leaveReview")
     public ResponseEntity<Object> leaveReview(@RequestBody ReviewRequest reviewRequest, HttpServletRequest httpRequest) {
         try {
@@ -201,6 +222,16 @@ public class CourseController {
     public ResponseEntity<Object> getCoursePage(@PathVariable int id) {
         try {
             return ResponseEntity.ok(courseService.getLessonById(id));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getCourseInformation/{id}")
+    public ResponseEntity<Object> getCourseInformation(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getCourseInformation(id, httpRequest.getHeader("Authorization")));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -304,6 +335,17 @@ public class CourseController {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
+    }
+
+    @PostMapping("/addDate/{id}")
+    public ResponseEntity<Object> addDate(HttpServletRequest httpServletRequest, @PathVariable int id, @RequestBody CourseTerminRequestResponse courseRequest) {
+        try {
+            courseService.addDate(courseRequest, id, httpServletRequest.getHeader("Authorization"));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/getTeacherUpcoming")
