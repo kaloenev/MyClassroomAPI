@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -108,7 +109,7 @@ public class UserService {
                     messageContact.setMessages(messages);
                     student.saveMessage(messageContact);
                     teacher.saveMessage(messageContact);
-                    // Web hooks
+                    // TODO Web hooks
                 }
                 counter--;
             }
@@ -116,15 +117,15 @@ public class UserService {
     }
 
     public int verifyTeacher(String token, String name, String surname, Gender gender, City city,
-                              String description, String specialties, Degree degree, String school, String university,
-                              String experience) throws IOException, CustomException {
+                              String description, String subjects, Degree degree, String school, String university,
+                              String specialty, String[] experience) throws IOException, CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         teacher.setFirstname(name);
         teacher.setLastname(surname);
         teacher.setGender(gender);
         teacher.setCity(city);
         teacher.setDescription(description);
-        teacher.setSpecialties(specialties);
+        teacher.setSpecialties(subjects);
         teacher.setDegree(degree);
         teacher.setSchool(school);
         teacher.setUniversity(university);
@@ -134,7 +135,8 @@ public class UserService {
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setRecipient("kaloyan.enev@gmail.com");
         emailDetails.setSubject("Teacher experience verification for: " + teacher.getId());
-        emailDetails.setMsgBody(experience + "\n Teacher email:" + teacher.getEmail());
+        emailDetails.setMsgBody("Uni: " + university + " \n Specialty:" + specialty + " \n Experience" + Arrays.toString(experience) +
+                "\n Teacher email:" + teacher.getEmail());
         emailService.sendSimpleMail(emailDetails);
         return teacher.getId();
     }

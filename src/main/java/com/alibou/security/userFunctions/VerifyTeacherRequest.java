@@ -30,7 +30,7 @@ public class VerifyTeacherRequest {
     private String description;
     @NotNull
     @Size(min = 1)
-    private String specialties;
+    private String subjects;
     @NotNull
     private Degree degree;
     @NotNull
@@ -39,5 +39,6 @@ public class VerifyTeacherRequest {
     @NotNull
     @Size(min = 1)
     private String university;
-    private String experience;
+    private String specialty;
+    private String[] experience;
 }
