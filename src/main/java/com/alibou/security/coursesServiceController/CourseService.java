@@ -572,6 +572,7 @@ public class CourseService {
                 lessonResponse.setTeacherResponse(null);
             } else {
                 lessonResponse = new LessonResponse(lesson, null, null, null);
+                lessonResponse.setTeacherResponse(null);
             }
             lessonResponse.setPricePerHour(lessonResponse.getPrice());
         } else {
