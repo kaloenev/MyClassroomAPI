@@ -203,7 +203,7 @@ public class UserService {
         if (teacher != null) {
             if (teacher.isVerified()) {
                 return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
-                        teacher.getRole().toString(), teacher.isVerified(), false);
+                        teacher.getRole().toString(), teacher.isVerified(), true);
             }
             else if (teacher.getTimeOfVerificationRequest() != null) {
                 return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
@@ -216,7 +216,7 @@ public class UserService {
         }
         else {
             User user = userRepository.findUserByTokens_token(token.substring(7));
-            return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(), true, false);
+            return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(), true, true);
         }
     }
 
