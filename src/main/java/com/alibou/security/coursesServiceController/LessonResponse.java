@@ -101,24 +101,26 @@ public class LessonResponse {
         rating = lesson.getRating();
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
-        courseTerminResponses = new ArrayList<>();
-        List<CourseTermin> courseTermins = lesson.getCourseTermins();
-        themas = new ArrayList<>();
-        for (var thema : courseTermins.get(0).getThemas()) {
-            themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
+        if (lesson.isHasTermins()) {
+            courseTerminResponses = new ArrayList<>();
+            List<CourseTermin> courseTermins = lesson.getCourseTermins();
+            themas = new ArrayList<>();
+            for (var thema : courseTermins.get(0).getThemas()) {
+                themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
+            }
+            CourseTermin courseTermin1 = null;
+            for (CourseTermin courseTermin : lesson.getCourseTermins()) {
+                CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
+                Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
+                        + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+                courseTerminRequestResponse.setCourseHours(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
+                courseTerminResponses.add(courseTerminRequestResponse);
+                if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
+                courseTermin1 = courseTermin;
+            }
+            String[] days = courseTermin1.getCourseDays().split(",");
+            pricePerHour = lesson.getPrice() / (days.length * weekLength);
         }
-        CourseTermin courseTermin1 = null;
-        for (CourseTermin courseTermin : lesson.getCourseTermins()) {
-            CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
-            Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
-                    + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
-            courseTerminRequestResponse.setCourseHours(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
-            courseTerminResponses.add(courseTerminRequestResponse);
-            if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
-            courseTermin1 = courseTermin;
-        }
-        String[] days = courseTermin1.getCourseDays().split(",");
-        pricePerHour = lesson.getPrice() / (days.length * weekLength);
         reviewResponses = reviews;
         Teacher teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);

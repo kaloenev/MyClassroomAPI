@@ -558,17 +558,21 @@ public class CourseService {
         var lesson = lessonRepository.getLessonByLessonID(id);
         LessonResponse lessonResponse;
         if (lesson.isPrivateLesson()) {
-            List<LessonTermin> lessonTermins = lesson.getLessonTermins();
-            List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
-            ThemaSimpleResponse thema = new ThemaSimpleResponse(lessonTermins.get(0).getThema().getTitle(), lessonTermins.get(0).getThema().getDescription());
-            for (LessonTermin lessonTermin : lessonTermins) {
-                Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
-                        + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
-                lessonTerminResponses.add(new LessonTerminResponse(lessonTermin.getTerminID(), lessonTermin.getDate(),
-                        lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)));
+            if (lesson.isHasTermins()) {
+                List<LessonTermin> lessonTermins = lesson.getLessonTermins();
+                List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
+                ThemaSimpleResponse thema = new ThemaSimpleResponse(lessonTermins.get(0).getThema().getTitle(), lessonTermins.get(0).getThema().getDescription());
+                for (LessonTermin lessonTermin : lessonTermins) {
+                    Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
+                            + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+                    lessonTerminResponses.add(new LessonTerminResponse(lessonTermin.getTerminID(), lessonTermin.getDate(),
+                            lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)));
+                }
+                lessonResponse = new LessonResponse(lesson, lessonTerminResponses, null, thema);
+                lessonResponse.setTeacherResponse(null);
+            } else {
+                lessonResponse = new LessonResponse(lesson, null, null, null);
             }
-            lessonResponse = new LessonResponse(lesson, lessonTerminResponses, null, thema);
-            lessonResponse.setTeacherResponse(null);
             lessonResponse.setPricePerHour(lessonResponse.getPrice());
         } else {
             lessonResponse = new LessonResponse(lesson, null);
