@@ -424,9 +424,9 @@ public class CourseService {
         String sort = request.getSort();
         if (sort == null) sort = "";
         switch (sort) {
-            case "Най-евтини" -> sort = "c.lesson.price";
-            case "Най-висок" -> sort = "c.lesson.rating";
-            case "Най-скоро започващи" -> sort = "c.dateTime";
+            case "Lowest price" -> sort = "c.lesson.price";
+            case "Highest rating" -> sort = "c.lesson.rating";
+            case "Starting soonest" -> sort = "c.dateTime";
             default -> sort = "c.lesson.popularity";
         }
         if (request.getPriceLowerBound() >= 0 && request.getPriceUpperBound() == 0) {
@@ -928,10 +928,10 @@ public class CourseService {
     public List<ReviewResponse> getLessonReviews(int lessonId, String sort, int pageNumber) throws ClassCastException {
         Pageable sortedAndPaged;
         switch (sort) {
-            case "Най-нови" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
-            case "Най-стари" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
-            case "Най-висок" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
-            case "Най-нисък" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").ascending());
+            case "Newest" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
+            case "Oldest" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
+            case "Highest rating" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
+            case "Lowest rating" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").ascending());
             default -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
         }
         List<Review> reviews = reviewRepo.getByLesson_lessonID(lessonId, sortedAndPaged);

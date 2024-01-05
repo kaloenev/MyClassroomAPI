@@ -115,6 +115,7 @@ public class SecurityConfiguration {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.addAllowedOrigin("http://localhost:3002");
     configuration.addAllowedOrigin("http://localhost:3000");
+    configuration.addAllowedOrigin("https://myclassroomfrontend-v1.onrender.com");
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");
     configuration.setAllowCredentials(true);
