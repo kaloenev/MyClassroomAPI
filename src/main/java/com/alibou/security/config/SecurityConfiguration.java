@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.reactive.CorsWebFilter;
 
 import static com.alibou.security.user.Permission.ADMIN_CREATE;
 import static com.alibou.security.user.Permission.ADMIN_DELETE;
@@ -49,9 +50,10 @@ public class SecurityConfiguration {
     http
         .csrf()
         .disable()
-            .cors(cors -> {
-              cors.configurationSource(corsConfigurationSource());
-            })
+//            .cors(cors -> {
+//              cors.configurationSource(corsConfigurationSource());
+//            })
+            .cors().and()
         .authorizeHttpRequests()
         .requestMatchers(
                 "/api/v1/auth/**",
@@ -110,16 +112,35 @@ public class SecurityConfiguration {
     return http.build();
   }
 
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.addAllowedOrigin("*");
-    configuration.addAllowedMethod("*");
-    configuration.addAllowedHeader("*");
-    configuration.setAllowCredentials(true);
-    UrlBasedCorsConfigurationSource source = new
-            UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
-  }
+//  @Bean
+//  public CorsConfigurationSource corsConfigurationSource() {
+//    CorsConfiguration configuration = new CorsConfiguration();
+//    configuration.addAllowedOrigin("*");
+//    configuration.addAllowedMethod("*");
+//    configuration.addAllowedHeader("*");
+//    configuration.setAllowCredentials(true);
+//    UrlBasedCorsConfigurationSource source = new
+//            UrlBasedCorsConfigurationSource();
+//    source.registerCorsConfiguration("/**", configuration);
+//    return source;
+//  }
+
+//  @Bean
+//  CorsWebFilter corsFilter() {
+//
+//    CorsConfiguration config = new CorsConfiguration();
+//
+//    // Possibly...
+//    // config.applyPermitDefaultValues()
+//
+//    config.setAllowCredentials(true);
+//    config.addAllowedOrigin("https://domain1.com");
+//    config.addAllowedHeader("*");
+//    config.addAllowedMethod("*");
+//
+//    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//    source.registerCorsConfiguration("/**", config);
+//
+//    return new CorsWebFilter(source);
+//  }
 }
