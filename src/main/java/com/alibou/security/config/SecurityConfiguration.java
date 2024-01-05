@@ -19,8 +19,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-
 import static com.alibou.security.user.Permission.ADMIN_CREATE;
 import static com.alibou.security.user.Permission.ADMIN_DELETE;
 import static com.alibou.security.user.Permission.ADMIN_READ;
@@ -115,15 +113,10 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-//    configuration.addAllowedOrigin("http://localhost:3002");
-//    configuration.addAllowedOrigin("http://localhost:3000");
-//    configuration.addAllowedOrigin("https://myclassroomfrontend-v1.onrender.com");
-//    configuration.addAllowedOrigin("myclassroomfrontend-v1.onrender.com");
-//    configuration.addAllowedMethod("*");
-//    configuration.addAllowedHeader("*");
-//    configuration.setAllowCredentials(true);
-    configuration.setAllowedOrigins(Arrays.asList("https://myclassroomfrontend-v1.onrender.com"));
-    configuration.setAllowedMethods(Arrays.asList("GET","POST"));
+    configuration.addAllowedOrigin("*");
+    configuration.addAllowedMethod("*");
+    configuration.addAllowedHeader("*");
+    configuration.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource source = new
             UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
