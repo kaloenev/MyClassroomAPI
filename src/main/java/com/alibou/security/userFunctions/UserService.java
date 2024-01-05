@@ -1,5 +1,6 @@
 package com.alibou.security.userFunctions;
 
+import com.alibou.security.coursesServiceController.ExperienceRequest;
 import com.alibou.security.coursesServiceController.ReviewResponse;
 import com.alibou.security.coursesServiceController.TeacherResponse;
 import com.alibou.security.coursesServiceController.TimePair;
@@ -118,7 +119,7 @@ public class UserService {
 
     public int verifyTeacher(String token, String name, String surname, Gender gender, City city,
                               String description, String subjects, Degree degree, String school, String university,
-                              String specialty, String[] experience) throws IOException, CustomException {
+                              String specialty, ExperienceRequest[] experience) throws IOException, CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         teacher.setFirstname(name);
         teacher.setLastname(surname);

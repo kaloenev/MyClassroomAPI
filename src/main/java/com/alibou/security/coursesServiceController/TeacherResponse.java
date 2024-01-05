@@ -60,9 +60,11 @@ public class TeacherResponse {
                 lessonResponses.add(new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(), 0));
             }
             else {
-                List<CourseTermin> termins = lesson.getCourseTermins();
-                lessonResponses.add(new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
-                        termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining()));
+                if (lesson.isHasTermins()) {
+                    List<CourseTermin> termins = lesson.getCourseTermins();
+                    lessonResponses.add(new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
+                            termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining()));
+                }
             }
         }
     }

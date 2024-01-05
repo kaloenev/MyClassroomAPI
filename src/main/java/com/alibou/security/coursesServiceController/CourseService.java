@@ -226,8 +226,10 @@ public class CourseService {
         if (!isPrivateLesson) {
             //TODO Find alternative to removal
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
-            for (CourseTermin termin : lesson.getCourseTermins()) {
-                themaRepository.deleteAll(termin.getThemas());
+            if (lesson.isHasTermins()) {
+                for (CourseTermin termin : lesson.getCourseTermins()) {
+                    themaRepository.deleteAll(termin.getThemas());
+                }
             }
             terminRepo.deleteAll(lesson.getTermins());
             lesson.removeAllTermins();

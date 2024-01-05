@@ -1,5 +1,6 @@
 package com.alibou.security.userFunctions;
 
+import com.alibou.security.coursesServiceController.ExperienceRequest;
 import com.alibou.security.user.City;
 import com.alibou.security.user.Degree;
 import com.alibou.security.user.Gender;
@@ -40,5 +41,5 @@ public class VerifyTeacherRequest {
     @Size(min = 1)
     private String university;
     private String specialty;
-    private String[] experience;
+    private ExperienceRequest[] experienceRequests;
 }

@@ -35,7 +35,7 @@ public class UserController {
         try {
         teacherId = userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
                 request.getGender(), request.getCity(), request.getDescription(), request.getSubjects(),
-                request.getDegree(), request.getSchool(), request.getUniversity(), request.getSpecialty(), request.getExperience());
+                request.getDegree(), request.getSchool(), request.getUniversity(), request.getSpecialty(), request.getExperienceRequests());
             } catch (IOException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
