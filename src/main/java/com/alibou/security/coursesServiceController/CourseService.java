@@ -868,6 +868,40 @@ public class CourseService {
         return thema.getLinkToRecording();
     }
 
+    public void deleteCourse(int id, String token) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Lesson lesson = lessonRepository.getLessonByLessonID(id);
+        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.FORBIDDEN,
+                "Нямате достъп до този курс");
+        if (lesson.isPrivateLesson()) {
+            List<LessonTermin> lessonTermins = lesson.getLessonTermins();
+            for (LessonTermin lessonTermin : lessonTermins) {
+                if (!lessonTermin.isEmpty()) throw new CustomException(HttpStatus.CONFLICT,
+                        "За някоя инстанция от този курс вече има записани ученици, така че не може да го изтриете");
+            }
+        }
+        else {
+            List<CourseTermin> courseTermins = lesson.getCourseTermins();
+            for (CourseTermin courseTermin : courseTermins) {
+                if (!courseTermin.isEmpty()) throw new CustomException(HttpStatus.CONFLICT,
+                        "За някоя инстанция от този курс вече има записани ученици, така че не може да го изтриете");
+            }
+        }
+        teacher.removeLesson(lesson);
+        lesson.setDraft(true);
+    }
+
+    public String addResource(int id, String token, String filename) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Thema thema = themaRepository.getThemaByThemaID(id);
+        String oldFilename = thema.getPresentation();
+        thema.setPresentation(filename);
+        themaRepository.save(thema);
+        return oldFilename;
+    }
+
     private void fillLessonResponseList(List<LessonResponse> lessonResponses, Lesson lesson, String lessonStatus) throws CustomException {
         List<CourseTermin> termins;
         List<LessonTermin> termins2;

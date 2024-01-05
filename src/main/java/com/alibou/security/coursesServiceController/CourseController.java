@@ -14,12 +14,16 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/api/v1/lessons")
@@ -28,6 +32,7 @@ import java.util.List;
 public class CourseController {
 
     private final CourseService courseService;
+    private int filenameCounter = 0;
 
     @PostMapping("/createCourse")
     public ResponseEntity<Object> createCourse(
@@ -178,6 +183,70 @@ public class CourseController {
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @GetMapping("/getLinkToRecording/{id}")
+    public ResponseEntity<Object> getLinkToRecording(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getLinkToRecording(id, httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/deleteCourse/{id}")
+    public ResponseEntity<Object> deleteCourse(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            courseService.deleteCourse(id, httpRequest.getHeader("Authorization"));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/addResource/{id}")
+    public ResponseEntity<Object> getResource(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
+                                                     HttpServletRequest httpRequest) {
+
+        if (requestFiles.length > 1) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        try {
+        if (requestFiles[0].isEmpty()) {
+                String file = courseService.addResource(id, httpRequest.getHeader("Authorization"), null);
+                File file1 = new File(file);
+                file1.delete();
+            }
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+            File newFile;
+            Random random = new Random();
+            newFile = new File("Assignment_" + random.nextInt(Integer.MAX_VALUE) + "_"
+                    + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
+            filenameCounter++;
+            try {
+                requestFiles[0].transferTo(newFile);
+                courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.getPath());
+            } catch (IOException | CustomException e) {
+                CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+                return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+            }
+            return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+//    @GetMapping("/getResource/{id}")
+//    public ResponseEntity<Object> getResource(@PathVariable int id, HttpServletRequest httpRequest) {
+//        try {
+//            return ResponseEntity.ok(courseService.getLinkToRecording(id, httpRequest.getHeader("Authorization")));
+//        } catch (CustomException e) {
+//            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+//        }
+//    }
 
     @PostMapping("/leaveReview")
     public ResponseEntity<Object> leaveReview(@RequestBody ReviewRequest reviewRequest, HttpServletRequest httpRequest) {
