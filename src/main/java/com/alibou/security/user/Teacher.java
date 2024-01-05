@@ -77,8 +77,8 @@ public class Teacher extends User {
     public boolean isVerified() {
         if (!isEnabled) return false;
         if (isVerified) return true;
-            Random random = new Random();
-            if ((System.currentTimeMillis() - timeOfVerificationRequest.getTime()) > random.nextInt(21600000)) isVerified = true;
+//            Random random = new Random();
+//            if ((System.currentTimeMillis() - timeOfVerificationRequest.getTime()) > random.nextInt(21600000)) isVerified = true;
         return isVerified;
     }
 
