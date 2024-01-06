@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +20,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.reactive.CorsWebFilter;
+
+import java.util.Arrays;
 
 import static com.alibou.security.user.Permission.ADMIN_CREATE;
 import static com.alibou.security.user.Permission.ADMIN_DELETE;
@@ -34,6 +37,7 @@ import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -47,8 +51,7 @@ public class SecurityConfiguration {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-            //  .cors().and()
+    http.cors(withDefaults())
         .csrf()
         .disable()
 //            .cors(cors -> {
@@ -112,18 +115,18 @@ public class SecurityConfiguration {
     return http.build();
   }
 
-//  @Bean
-//  public CorsConfigurationSource corsConfigurationSource() {
-//    CorsConfiguration configuration = new CorsConfiguration();
-//    configuration.addAllowedOrigin("*");
-//    configuration.addAllowedMethod("*");
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(Arrays.asList("https://myclassroomfrontend-v1.onrender.com", "frontendtest-v3.onrender.com"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST"));
 //    configuration.addAllowedHeader("*");
 //    configuration.setAllowCredentials(true);
-//    UrlBasedCorsConfigurationSource source = new
-//            UrlBasedCorsConfigurationSource();
-//    source.registerCorsConfiguration("/**", configuration);
-//    return source;
-//  }
+    UrlBasedCorsConfigurationSource source = new
+            UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
 
 //  @Bean
 //  CorsWebFilter corsFilter() {

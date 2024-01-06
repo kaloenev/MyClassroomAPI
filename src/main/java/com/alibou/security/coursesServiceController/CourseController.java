@@ -28,7 +28,7 @@ import java.util.Random;
 @RestController
 @RequestMapping("/api/v1/lessons")
 @RequiredArgsConstructor
-//@CrossOrigin
+@CrossOrigin
 public class CourseController {
 
     private final CourseService courseService;
