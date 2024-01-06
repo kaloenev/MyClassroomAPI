@@ -142,20 +142,12 @@ public class CourseController {
 
     @GetMapping("/getHomePage")
     public ResponseEntity<Object> getHomePage() {
-        HomePageResponse homePageResponse;
         try {
-            homePageResponse = courseService.getHomePageInfo();
+            return ResponseEntity.ok(courseService.getHomePageInfo());
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set("Access-Control-Allow-Origin",
-                "https://myclassroomfrontend-v1.onrender.com");
-
-        return ResponseEntity.ok()
-                .headers(responseHeaders)
-                .body(homePageResponse);
     }
 
     @PostMapping("/getFilteredClasses")
