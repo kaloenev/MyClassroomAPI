@@ -26,6 +26,10 @@ public class Thema {
     @ToString.Exclude
     private CourseTermin courseTermin;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+
     @OneToOne(mappedBy = "thema", cascade = CascadeType.ALL)
     private LessonTermin lessonTermin;
 }

@@ -101,15 +101,17 @@ public class LessonResponse {
         rating = lesson.getRating();
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
+        if (lesson.getThemas() != null) {
+            themas = new ArrayList<>();
+            for (var thema : lesson.getThemas()) {
+                themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
+            }
+        }
         if (lesson.isHasTermins()) {
             courseTerminResponses = new ArrayList<>();
             List<CourseTermin> courseTermins = lesson.getCourseTermins();
-            themas = new ArrayList<>();
-            for (var thema : courseTermins.get(0).getThemas()) {
-                themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
-            }
             CourseTermin courseTermin1 = null;
-            for (CourseTermin courseTermin : lesson.getCourseTermins()) {
+            for (CourseTermin courseTermin : courseTermins) {
                 CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                 Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
                         + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());

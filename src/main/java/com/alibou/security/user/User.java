@@ -28,19 +28,19 @@ public class User implements UserDetails {
   @Id
   @GeneratedValue
   protected Integer id;
-  @Column(columnDefinition = "nvarchar")
+  @Column()
   @Size(min = 1, max = 64)
   protected String firstname;
-  @Column(columnDefinition = "nvarchar")
+  @Column()
   @Size(min = 1, max = 64)
   protected String lastname;
-  @Column(columnDefinition = "nvarchar", unique = true)
+  @Column(unique = true)
   @Size(min = 3, max = 64)
   protected String username;
   protected String resetToken;
   protected String pictureLocation;
   @Enumerated(EnumType.STRING)
-  @Column(columnDefinition = "nvarchar")
+  @Column()
   protected Gender gender;
   @Enumerated(EnumType.STRING)
   protected NotificationMode notificationMode;

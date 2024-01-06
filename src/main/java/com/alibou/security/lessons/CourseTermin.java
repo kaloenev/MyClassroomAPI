@@ -20,7 +20,7 @@ import java.util.List;
 @SuperBuilder
 public class CourseTermin extends Termin{
     private int weekLength;
-    @Column(columnDefinition = "nvarchar")
+    @Column()
     private String courseDays;
     private int courseHoursNumber;
     private int studentsUpperBound;

@@ -27,14 +27,14 @@ public class Lesson {
     @Id
     @GeneratedValue
     private Integer lessonID;
-    @Column(columnDefinition = "nvarchar")
+    @Column()
     private String title;
-    @Column(columnDefinition = "nvarchar")
+    @Column()
     private String description;
     private String imageLocation;
-    @Column(columnDefinition = "nvarchar")
+    @Column()
     private String grade;
-    @Column(columnDefinition = "nvarchar")
+    @Column()
     private String subject;
     private String advantages;
     private boolean isPrivateLesson;
@@ -43,10 +43,14 @@ public class Lesson {
     private double price;
     private int length;
     private int studentsUpperBound;
-    @Column(columnDefinition = "nvarchar")
+    @Column()
     private double rating;
     private int numberOfReviews;
     private int popularity;
+
+    @OneToMany(mappedBy = "lesson")
+    @ToString.Exclude
+    private List<Thema> themas;
 
     @OneToMany(mappedBy = "lesson")
     @ToString.Exclude
