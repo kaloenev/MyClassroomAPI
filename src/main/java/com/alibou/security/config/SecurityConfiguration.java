@@ -52,12 +52,10 @@ public class SecurityConfiguration {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.cors(withDefaults())
+    http
         .csrf()
         .disable()
-//            .cors(cors -> {
-//              cors.configurationSource(corsConfigurationSource());
-//            })
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .authorizeHttpRequests()
         .requestMatchers(
                 "/api/v1/auth/**",
@@ -119,10 +117,13 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("*"));
-    configuration.setAllowedMethods(Arrays.asList("GET", "POST"));
-//    configuration.addAllowedHeader("*");
-//    configuration.setAllowCredentials(true);
+    configuration.addAllowedOrigin("http://localhost:3000");
+    configuration.addAllowedOrigin("http://localhost:3002");
+    configuration.addAllowedOrigin("https://myclassroomapi-v6.onrender.com");
+    configuration.addAllowedMethod(POST);
+    configuration.addAllowedMethod(GET);
+    configuration.addAllowedHeader("*");
+    configuration.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource source = new
             UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
