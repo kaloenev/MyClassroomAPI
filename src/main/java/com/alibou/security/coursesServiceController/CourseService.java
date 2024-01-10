@@ -117,9 +117,11 @@ public class CourseService {
         if (lesson.getGrade() == null || Objects.equals(lesson.getGrade(), ""))
             throw new CustomException(HttpStatus.CONFLICT, "Не сте задали описание на курса");
         if (lesson.getStudentsUpperBound() <= 0) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали максимален брой ученици");
+        if (lesson.getThemas() == null || lesson.getThemas().isEmpty()) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали теми");
     }
 
     public void createCourse(String token, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
+        //TODO Add grade check
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (!teacher.isVerified())
             throw new CustomException(HttpStatus.CONFLICT, "You must be verified to create a course");
@@ -147,6 +149,7 @@ public class CourseService {
                     } else
                         thema = Thema.builder().description(themaData.getDescription()).title(themaData.getTitle()).build();
                     themas.add(thema);
+                    thema.setLesson(lesson);
                     themaRepository.save(thema);
                 }
                 lesson.setThemas(themas);
@@ -183,7 +186,6 @@ public class CourseService {
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
             }
         } else {
-            lesson.setStudentsUpperBound(1);
             Thema thema = null;
             if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
                 if (courseRequest.getThemas()[0].getDescription() == null) {
@@ -192,8 +194,10 @@ public class CourseService {
                     thema = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
                             .title(courseRequest.getThemas()[0].getTitle()).build();
                 }
+                thema.setLesson(lesson);
                 themaRepository.save(thema);
             }
+            lesson.setStudentsUpperBound(1);
             lesson.setThemas(Collections.singletonList(thema));
             lessonRepository.save(lesson);
             if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
@@ -216,6 +220,10 @@ public class CourseService {
                     lessonTermin.setLesson(lesson);
                     lesson.addTermin(lessonTermin);
                     lesson.setHasTermins(true);
+                    if (thema != null) {
+                        thema.setLessonTermin(lessonTermin);
+                        themaRepository.save(thema);
+                    }
                 }
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
             }
@@ -278,6 +286,7 @@ public class CourseService {
                     } else
                         thema = Thema.builder().description(themaData.getDescription()).title(themaData.getTitle()).build();
                     themas.add(thema);
+                    thema.setLesson(lesson);
                     themaRepository.save(thema);
                 }
             }
@@ -301,7 +310,13 @@ public class CourseService {
                             .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).themas(themas1).lessonStatus(LessonStatus.NOT_STARTED).build();
+                            .lesson(lesson).lessonStatus(LessonStatus.NOT_STARTED).build();
+                    courseTerminRepo.save(courseTermin);
+                    for (Thema thema : themas1) {
+                        thema.setCourseTermin(courseTermin);
+                        themaRepository.save(thema);
+                        courseTermin.addThema(thema);
+                    }
                     courseTerminRepo.save(courseTermin);
                     lesson.addTermin(courseTermin);
                     lesson.setHasTermins(true);
@@ -327,6 +342,7 @@ public class CourseService {
                     thema = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
                             .title(courseRequest.getThemas()[0].getTitle()).build();
                 }
+                thema.setLesson(lesson);
                 themaRepository.save(thema);
             }
             lesson.setThemas(Collections.singletonList(thema));
@@ -350,6 +366,10 @@ public class CourseService {
                     lessonTermin.setLesson(lesson);
                     lesson.addTermin(lessonTermin);
                     lesson.setHasTermins(true);
+                    if (thema != null) {
+                        thema.setLessonTermin(lessonTermin);
+                        themaRepository.save(thema);
+                    }
                 }
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
                 lessonRepository.save(lesson);
@@ -404,12 +424,14 @@ public class CourseService {
     }
 
     public HomePageResponse getHomePageInfo() throws CustomException {
+        // TODO Maybe find fix for drafts not to be shown
         List<Lesson> lessons = lessonRepository.findTop12ByOrderByPopularityDesc();
         // Add file reader and links to the courses
         HomePageResponse homePageResponse = new HomePageResponse();
 
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
+            if (lesson.isDraft()) continue;
             List<CourseTermin> termins;
             List<LessonTermin> termins2;
             LessonResponse lessonResponse;
@@ -588,11 +610,18 @@ public class CourseService {
         if (lesson.isPrivateLesson()) {
             String hours = courseRequest.getCourseHours();
             LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                    .dateTime(Timestamp.valueOf(courseRequest.getStartDate() + " " + hours + ":00")).thema(lesson.getThemas().get(0))
+                    .dateTime(Timestamp.valueOf(courseRequest.getStartDate() + " " + hours + ":00"))
                     .lessonStatus(LessonStatus.NOT_STARTED).build();
             lessonTerminRepo.save(lessonTermin);
             lesson.setHasTermins(true);
             lesson.addTermin(lessonTermin);
+            if (!lesson.getThemas().isEmpty() && lesson.getThemas() != null) {
+                Thema thema = lesson.getThemas().get(0);
+                lessonTermin.setThema(thema);
+                lessonTerminRepo.save(lessonTermin);
+                thema.setLessonTermin(lessonTermin);
+                themaRepository.save(thema);
+            }
         } else {
             CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseRequest.getStartDate()
                             + " " + courseRequest.getCourseHours() + ":00"))
@@ -617,7 +646,7 @@ public class CourseService {
         lessonRepository.save(lesson);
     }
 
-    public List<LessonResponse> getCourseInformation(int id, String token) throws CustomException {
+    public LessonResponse getCourseInformation(int id, String token) throws CustomException {
         //TODO Check if the teacher has access to the course with id
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
@@ -648,9 +677,7 @@ public class CourseService {
             lessonResponse = new LessonResponse(lesson, null);
             lessonResponse.setTeacherResponse(null);
         }
-        List<LessonResponse> lessonResponses = new ArrayList<>();
-        lessonResponses.add(lessonResponse);
-        return lessonResponses;
+        return lessonResponse;
     }
 
     public ClassroomPageResponse getClassroomPage(String token, int terminId, boolean isPrivateLesson) throws CustomException {
