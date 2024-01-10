@@ -16,7 +16,7 @@ public class ClassroomPageResponse {
     private int courseTerminId;
     private String startDate;
     private String endDate;
-    private String courseDays;
+    private int[] courseDaysNumbers;
     private String courseHours;
     private int enrolledStudents;
     private List<UserProfileResponse> students;

@@ -169,7 +169,7 @@ public class CourseService {
                     }
                     CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()
                                     + " " + courseTerminRequest.getCourseHours() + ":00"))
-                            .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
+                            .courseDays(Arrays.toString(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
                             .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
@@ -307,7 +307,7 @@ public class CourseService {
                     }
                     CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseTerminRequest.getStartDate()
                                     + " " + courseTerminRequest.getCourseHours() + ":00"))
-                            .courseDays(getDaysOfWeek(courseTerminRequest.getCourseDaysNumbers()))
+                            .courseDays(Arrays.toString(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
                             .lesson(lesson).lessonStatus(LessonStatus.NOT_STARTED).build();
@@ -624,8 +624,8 @@ public class CourseService {
             }
         } else {
             CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseRequest.getStartDate()
-                            + " " + courseRequest.getCourseHours() + ":00"))
-                    .courseDays(getDaysOfWeek(courseRequest.getCourseDaysNumbers()))
+                            + " " + courseRequest.getCourseHours() + ":00.000"))
+                    .courseDays(Arrays.toString(courseRequest.getCourseDaysNumbers()))
                     .courseHoursNumber(Integer.parseInt(courseRequest.getCourseHours().replace(":", "")))
                     .weekLength(courseRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
                     .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
@@ -723,9 +723,15 @@ public class CourseService {
             //endTime
             Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
                     + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+            String[] daysString = courseTermin.getCourseDays().replaceFirst("\\[", "").replaceFirst("]", "")
+                    .replace(" ", "").split(",");
+            int[] days = new int[daysString.length];
+            for (int i = 0; i < daysString.length; i ++) {
+                days [i] = Integer.parseInt(String.valueOf(daysString[i]));
+            }
             classroomPageResponse = ClassroomPageResponse.builder().lessonTitle(lesson.getTitle())
                     .lessonDescription(lesson.getDescription()).courseHours(courseTermin.getTime() + " - " + timestamp.toString().substring(11, 16))
-                    .startDate(courseTermin.getDate()).courseDays(courseTermin.getCourseDays())
+                    .startDate(courseTermin.getDate()).courseDaysNumbers(days)
                     .enrolledStudents(courseTermin.getStudentsUpperBound() - courseTermin.getPlacesRemaining()).endDate(endDate)
                     .themas(themas).courseTerminId(courseTermin.getTerminID()).students(students).build();
         }

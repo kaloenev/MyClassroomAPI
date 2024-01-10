@@ -214,7 +214,7 @@ public class CourseController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         try {
-        if (requestFiles[0].isEmpty()) {
+        if (requestFiles.length == 0) {
                 String file = courseService.addResource(id, httpRequest.getHeader("Authorization"), null);
                 File file1 = new File(file);
                 file1.delete();

@@ -3,10 +3,6 @@ package com.alibou.security.coursesServiceController;
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.lessons.CourseTermin;
 import com.alibou.security.lessons.Lesson;
-import com.alibou.security.lessons.LessonTermin;
-import com.alibou.security.lessons.Termin;
-import com.alibou.security.miscellanious.Advantages;
-import com.alibou.security.user.Review;
 import com.alibou.security.user.Teacher;
 import lombok.*;
 
@@ -14,7 +10,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Getter
@@ -42,7 +37,7 @@ public class LessonResponse {
     private String status;
 
     private int weekLength;
-    private boolean isPrivateLesson;
+    private boolean privateLesson;
 
     private String firstDate;
 
@@ -65,6 +60,8 @@ public class LessonResponse {
 
     private TeacherResponse teacherResponse;
 
+    private boolean isDraft;
+
 
 
     public LessonResponse(Lesson lesson, String dateTime, String time, int numberOfStudents) {
@@ -86,7 +83,7 @@ public class LessonResponse {
         teacherSurname = teacher.getLastname();
         teacherId = teacher.getId();
         this.numberOfStudents = numberOfStudents;
-        this.isPrivateLesson = lesson.isPrivateLesson();
+        this.privateLesson = lesson.isPrivateLesson();
     }
 
     public LessonResponse(Lesson lesson, List<ReviewResponse> reviews) throws CustomException {
@@ -127,7 +124,7 @@ public class LessonResponse {
         Teacher teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
-        this.isPrivateLesson = lesson.isPrivateLesson();
+        this.privateLesson = lesson.isPrivateLesson();
     }
 
     public LessonResponse(Lesson lesson, List<LessonTerminResponse> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
@@ -138,6 +135,7 @@ public class LessonResponse {
         subject = lesson.getSubject();
         price = lesson.getPrice();
         length = lesson.getLength();
+        isDraft = lesson.isDraft();
         studentsUpperBound = lesson.getStudentsUpperBound();
         rating = lesson.getRating();
         numberOfReviews = lesson.getNumberOfReviews();
@@ -149,28 +147,28 @@ public class LessonResponse {
         var teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
-        this.isPrivateLesson = lesson.isPrivateLesson();
+        this.privateLesson = lesson.isPrivateLesson();
     }
 
-    public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
+    public LessonResponse(int lessonID, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
         courseTerminResponses = new ArrayList<>();
         courseTerminResponses.add(courseTerminRequestResponse);
         this.lessonID = lessonID;
         this.title = title;
-        this.isPrivateLesson = isPrivateLesson;
+        this.privateLesson = privateLesson;
         this.teacherName = teacherName;
         this.teacherSurname = teacherSurname;
         this.status = status;
         this.teacherId = teacherId;
     }
 
-    public LessonResponse(int lessonID, String title, boolean isPrivateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
+    public LessonResponse(int lessonID, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
         courseTerminResponses = new ArrayList<>();
         this.firstDate = date;
         this.time = time;
         this.lessonID = lessonID;
         this.title = title;
-        this.isPrivateLesson = isPrivateLesson;
+        this.privateLesson = privateLesson;
         this.teacherName = teacherName;
         this.teacherSurname = teacherSurname;
         this.status = status;

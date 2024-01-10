@@ -33,7 +33,13 @@ public class CourseTerminRequestResponse {
         courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();
         weekLength = courseTermin.getWeekLength();
-        courseDays = courseTermin.getCourseDays();
+        String[] daysString = courseTermin.getCourseDays().replaceFirst("\\[", "").replaceFirst("]", "")
+                .replace(" ", "").split(",");
+        int[] days = new int[daysString.length];
+        for (int i = 0; i < daysString.length; i ++) {
+            days [i] = Integer.parseInt(String.valueOf(daysString[i]));
+        }
+        courseDaysNumbers = days;
         courseHours = courseTermin.getTime();
         studentsUpperBound = courseTermin.getStudentsUpperBound();
         numberOfStudents = studentsUpperBound - courseTermin.getPlacesRemaining();
@@ -43,7 +49,13 @@ public class CourseTerminRequestResponse {
     public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus, int length) {
         courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();
-        courseDays = courseTermin.getCourseDays();
+        String[] daysString = courseTermin.getCourseDays().replaceFirst("\\[", "").replaceFirst("]", "")
+                .replace(" ", "").split(",");
+        int[] days = new int[daysString.length];
+        for (int i = 0; i < daysString.length; i ++) {
+            days [i] = Integer.parseInt(String.valueOf(daysString[i]));
+        }
+        courseDaysNumbers = days;
         weekLength = courseTermin.getWeekLength();
         Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
                 + length * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
