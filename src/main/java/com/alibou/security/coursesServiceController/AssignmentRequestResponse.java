@@ -13,10 +13,10 @@ public class AssignmentRequestResponse {
     private String studentName;
     private String teacherName;
     private String description;
-    private String filesLocation;
+    private String[] fileNames;
     private String date;
     private String time;
     private String status;
-    private String[] comments;
+    private String comment;
     private int commentAmount;
 }

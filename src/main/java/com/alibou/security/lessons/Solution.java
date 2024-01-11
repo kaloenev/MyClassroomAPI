@@ -31,15 +31,23 @@ public class Solution {
     @JoinColumn(name = "assignment_id")
     @ToString.Exclude
     private Assignment assignment;
-
-    private String teacherComment;
     private int teacherCommentCount = 0;
+
+    @OneToMany(mappedBy = "solution")
+    @ToString.Exclude
+    private List<Comment> comments;
+
     public String getTime() {
         return dateTime.toString().substring(11, 16);
     }
 
     public String getDate() {
         return dateTime.toString().substring(0, 10);
+    }
+
+    public void leaveComment(Comment comment) {
+        teacherCommentCount++;
+        comments.add(comment);
     }
 
 }
