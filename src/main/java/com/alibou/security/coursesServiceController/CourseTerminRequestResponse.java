@@ -29,6 +29,8 @@ public class CourseTerminRequestResponse {
 
     private String lessonStatus;
 
+    private String time;
+
     public CourseTerminRequestResponse(CourseTermin courseTermin) {
         courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();

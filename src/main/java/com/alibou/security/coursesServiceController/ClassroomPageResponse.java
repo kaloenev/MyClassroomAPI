@@ -3,6 +3,7 @@ package com.alibou.security.coursesServiceController;
 import com.alibou.security.userFunctions.UserProfileResponse;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -19,6 +20,6 @@ public class ClassroomPageResponse {
     private int[] courseDaysNumbers;
     private String courseHours;
     private int enrolledStudents;
-    private List<UserProfileResponse> students;
-    private List<ThemaResponse> themas;
+    private List<UserProfileResponse> students = new ArrayList<>();
+    private List<ThemaResponse> themas = new ArrayList<>();
 }

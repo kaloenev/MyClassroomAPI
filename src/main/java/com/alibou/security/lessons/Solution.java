@@ -33,5 +33,13 @@ public class Solution {
     private Assignment assignment;
 
     private String teacherComment;
+    private int teacherCommentCount = 0;
+    public String getTime() {
+        return dateTime.toString().substring(11, 16);
+    }
+
+    public String getDate() {
+        return dateTime.toString().substring(0, 10);
+    }
 
 }

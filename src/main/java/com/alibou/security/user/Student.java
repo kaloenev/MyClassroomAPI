@@ -43,6 +43,10 @@ public class Student extends User{
     @ToString.Exclude
     private List<MessageContact> messages;
 
+    @ManyToMany(mappedBy = "students", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<Assignment> assignments;
+
     public void addLessonTermin(LessonTermin lesson) {
         int counter = 0;
         for (LessonTermin termin : privateLessons) {
@@ -66,6 +70,10 @@ public class Student extends User{
     public void saveMessage(MessageContact messageContact) {
         messages.remove(messageContact);
         messages.add(0, messageContact);
+    }
+
+    public void addAssignment(Assignment assignment) {
+        assignments.add(assignment);
     }
 
     public void saveLessonToLiked(Lesson lesson) {

@@ -94,10 +94,12 @@ public class LessonResponse {
         subject = lesson.getSubject();
         price = lesson.getPrice();
         length = lesson.getLength();
+        isDraft = lesson.isDraft();
         studentsUpperBound = lesson.getStudentsUpperBound();
         rating = lesson.getRating();
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
+        courseTerminResponses = new ArrayList<>();
         if (lesson.getThemas() != null) {
             themas = new ArrayList<>();
             for (var thema : lesson.getThemas()) {
@@ -105,14 +107,13 @@ public class LessonResponse {
             }
         }
         if (lesson.isHasTermins()) {
-            courseTerminResponses = new ArrayList<>();
             List<CourseTermin> courseTermins = lesson.getCourseTermins();
             CourseTermin courseTermin1 = null;
             for (CourseTermin courseTermin : courseTermins) {
                 CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                 Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
                         + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
-                courseTerminRequestResponse.setCourseHours(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
+                courseTerminRequestResponse.setTime(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
                 courseTerminResponses.add(courseTerminRequestResponse);
                 if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
                 courseTermin1 = courseTermin;

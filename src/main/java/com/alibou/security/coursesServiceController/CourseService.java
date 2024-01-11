@@ -62,6 +62,8 @@ public class CourseService {
 
     private final ThemaRepository themaRepository;
 
+    private final AssignmentRepo assignmentRepo;
+
     public void enrollUserInCourse(String token, int courseID, int terminID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         CourseTermin termin = courseTerminRepo.getCourseTerminByTerminID(terminID);
@@ -1076,6 +1078,76 @@ public class CourseService {
             reviewResponses.add(new ReviewResponse(review));
         }
         return new PagedResponse(reviews.getTotalElements(), 12, null, reviewResponses);
+    }
+
+    public Integer addAssignment(AssignmentRequestResponse assignmentRequest, String token, int id) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Thema thema = themaRepository.getThemaByThemaID(id);
+        if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена тема с това id");
+        CourseTermin courseTermin = thema.getCourseTermin();
+        List<Student> students = new ArrayList<>();
+        Assignment assignment;
+        if (courseTermin != null) {
+            students = courseTermin.getEnrolledStudents();
+            assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
+                    .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
+                            + " " + assignmentRequest.getTime() + ":00")).lesson(courseTermin).build();
+            assignmentRepo.save(assignment);
+            courseTerminRepo.save(courseTermin);
+        }
+        else {
+            LessonTermin lessonTermin = thema.getLessonTermin();
+            students.add(lessonTermin.getStudent());
+            assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
+                    .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
+                            + " " + assignmentRequest.getTime() + ":00")).lesson(lessonTermin).build();
+            assignmentRepo.save(assignment);
+            lessonTerminRepo.save(lessonTermin);
+        }
+        for (Student student : students) {
+            student.addAssignment(assignment);
+            studentRepository.save(student);
+        }
+        return assignment.getAssignmentID();
+    }
+
+    public void uploadAssignmentFiles(String token, int id, String paths) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
+        if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
+        assignment.setAssignmentLocation(paths);
+        assignmentRepo.save(assignment);
+    }
+
+    public AssignmentRequestResponse getAssignment(String token, int id) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
+        if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
+        AssignmentRequestResponse assignmentResponse = AssignmentRequestResponse.builder().title(assignment.getTitle())
+                .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime()).build();
+        return assignmentResponse;
+    }
+
+    public List<AssignmentRequestResponse> checkSolutions(String token, int id) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
+        if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
+        List<AssignmentRequestResponse> solutions = new ArrayList<>();
+        for (Solution solution : assignment.getSolutions()) {
+            String status;
+            if (solution.isOverdue()) status = "навреме";
+            else status = "закъснял";
+            AssignmentRequestResponse assignmentResponse = AssignmentRequestResponse.builder().id(solution.getSolutionID())
+                    .studentName(solution.getName() + " " + solution.getSurname()).time(solution.getTime())
+                    .date(solution.getDate()).status(status).commentAmount(solution.getTeacherCommentCount()).build();
+            solutions.add(assignmentResponse);
+        }
+        return solutions;
+        //TODO Add delete endpoint for all file upload implementations
     }
 
     public static void addNewPriceCourse(double newPrice) {

@@ -35,4 +35,16 @@ public class Assignment {
     @OneToMany(mappedBy = "assignment")
     @ToString.Exclude
     private List<Solution> solutions;
+
+    @ManyToMany(mappedBy = "assignments", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<Student> students;
+
+    public String getTime() {
+        return dueDateTime.toString().substring(11, 16);
+    }
+
+    public String getDate() {
+        return dueDateTime.toString().substring(0, 10);
+    }
 }
