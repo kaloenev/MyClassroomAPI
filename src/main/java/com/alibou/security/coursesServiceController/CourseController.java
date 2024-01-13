@@ -1,15 +1,11 @@
 package com.alibou.security.coursesServiceController;
 
 
-import com.alibou.security.auth.AuthenticationResponse;
-import com.alibou.security.auth.RegisterRequest;
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.exceptionHandling.CustomWarning;
 import com.alibou.security.lessons.LessonStatus;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,13 +14,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -252,7 +245,7 @@ public class CourseController {
      * @return
      */
     @PostMapping("/addAssignment/{id}")
-    public ResponseEntity<Object> addAssignment(@PathVariable int id, @RequestBody AssignmentRequestResponse assignmentRequest,
+    public ResponseEntity<Object> addAssignment(@PathVariable int id, @RequestBody AssignmentRequest assignmentRequest,
                                                      HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(courseService.addAssignment(assignmentRequest, httpRequest.getHeader("Authorization"), id));
@@ -270,7 +263,7 @@ public class CourseController {
      * @return
      */
     @PostMapping("/editAssignment/{id}")
-    public ResponseEntity<Object> editAssignment(@PathVariable int id, @RequestBody AssignmentRequestResponse assignmentRequest,
+    public ResponseEntity<Object> editAssignment(@PathVariable int id, @RequestBody AssignmentRequest assignmentRequest,
                                                 HttpServletRequest httpRequest) {
         try {
             courseService.editAssignment(assignmentRequest, httpRequest.getHeader("Authorization"), id);
@@ -686,14 +679,13 @@ public class CourseController {
     }
 
     @PostMapping("/addDate/{id}")
-    public ResponseEntity<Object> addDate(HttpServletRequest httpServletRequest, @PathVariable int id, @RequestBody CourseTerminRequestResponse courseRequest) {
+    public ResponseEntity<Object> addDate(HttpServletRequest httpServletRequest, @PathVariable int id, @RequestBody CreateCourseRequest courseRequest) {
         try {
-            courseService.addDate(courseRequest, id, httpServletRequest.getHeader("Authorization"));
+            return ResponseEntity.ok(courseService.addDate(courseRequest.getCourseTerminRequests().get(0), id, httpServletRequest.getHeader("Authorization")));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/getTeacherUpcoming")

@@ -43,7 +43,7 @@ public class Student extends User{
     @ToString.Exclude
     private List<MessageContact> messages;
 
-    @ManyToMany(mappedBy = "students", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "students")
     @ToString.Exclude
     private List<Assignment> assignments;
 

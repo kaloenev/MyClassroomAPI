@@ -36,7 +36,7 @@ public class Assignment {
     @ToString.Exclude
     private List<Solution> solutions;
 
-    @ManyToMany(mappedBy = "assignments", fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY)
     @ToString.Exclude
     private List<Student> students;
 

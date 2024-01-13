@@ -1,13 +1,15 @@
 package com.alibou.security.coursesServiceController;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssignmentRequestResponse {
+public class AssignmentRequest {
     private int id;
     private String title;
     private String studentName;

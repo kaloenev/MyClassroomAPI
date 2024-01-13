@@ -17,6 +17,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 @Service
@@ -123,6 +124,7 @@ public class CourseService {
         if (lesson.getStudentsUpperBound() <= 0) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали максимален брой ученици");
         if (lesson.getThemas() == null || lesson.getThemas().isEmpty()) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали теми");
     }
+    //TODO Check why courses get full without anyone being enrolled in them
 
     public void createCourse(String token, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
         //TODO Add grade check
@@ -206,27 +208,29 @@ public class CourseService {
             lessonRepository.save(lesson);
             if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                    Thema thema1 = null;
-                    if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
-                        if (courseRequest.getThemas()[0].getDescription() == null) {
-                            thema1 = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
-                        } else {
-                            thema1 = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
-                                    .title(courseRequest.getThemas()[0].getTitle()).build();
+                    for (TimePair timePair : privateLessonTermin.getLessonHours()) {
+                        Thema thema1 = null;
+                        if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
+                            if (courseRequest.getThemas()[0].getDescription() == null) {
+                                thema1 = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
+                            } else {
+                                thema1 = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
+                                        .title(courseRequest.getThemas()[0].getTitle()).build();
+                            }
+                            themaRepository.save(thema1);
                         }
-                        themaRepository.save(thema1);
-                    }
-                    String hours = privateLessonTermin.getLessonHours();
-                    LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                            .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
-                            .lessonStatus(LessonStatus.NOT_STARTED).build();
-                    lessonTerminRepo.save(lessonTermin);
-                    lessonTermin.setLesson(lesson);
-                    lesson.addTermin(lessonTermin);
-                    lesson.setHasTermins(true);
-                    if (thema != null) {
-                        thema.setLessonTermin(lessonTermin);
-                        themaRepository.save(thema);
+                        String hours = timePair.getTime();
+                        LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
+                                .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
+                                .lessonStatus(LessonStatus.NOT_STARTED).build();
+                        lessonTerminRepo.save(lessonTermin);
+                        lessonTermin.setLesson(lesson);
+                        lesson.addTermin(lessonTermin);
+                        lesson.setHasTermins(true);
+                        if (thema != null) {
+                            thema.setLessonTermin(lessonTermin);
+                            themaRepository.save(thema);
+                        }
                     }
                 }
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
@@ -352,27 +356,29 @@ public class CourseService {
             lesson.setThemas(Collections.singletonList(thema));
             if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
-                    Thema thema1 = null;
-                    if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
-                        if (courseRequest.getThemas()[0].getDescription() == null) {
-                            thema1 = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
-                        } else {
-                            thema1 = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
-                                    .title(courseRequest.getThemas()[0].getTitle()).build();
+                    for (TimePair timePair : privateLessonTermin.getLessonHours()) {
+                        Thema thema1 = null;
+                        if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
+                            if (courseRequest.getThemas()[0].getDescription() == null) {
+                                thema1 = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
+                            } else {
+                                thema1 = Thema.builder().description(courseRequest.getThemas()[0].getDescription())
+                                        .title(courseRequest.getThemas()[0].getTitle()).build();
+                            }
+                            themaRepository.save(thema1);
                         }
-                        themaRepository.save(thema1);
-                    }
-                    String hours = privateLessonTermin.getLessonHours();
-                    LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
-                            .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
-                            .lessonStatus(LessonStatus.NOT_STARTED).build();
-                    lessonTerminRepo.save(lessonTermin);
-                    lessonTermin.setLesson(lesson);
-                    lesson.addTermin(lessonTermin);
-                    lesson.setHasTermins(true);
-                    if (thema != null) {
-                        thema.setLessonTermin(lessonTermin);
-                        themaRepository.save(thema);
+                        String hours = timePair.getTime();
+                        LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
+                                .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
+                                .lessonStatus(LessonStatus.NOT_STARTED).build();
+                        lessonTerminRepo.save(lessonTermin);
+                        lessonTermin.setLesson(lesson);
+                        lesson.addTermin(lessonTermin);
+                        lesson.setHasTermins(true);
+                        if (thema != null) {
+                            thema.setLessonTermin(lessonTermin);
+                            themaRepository.save(thema);
+                        }
                     }
                 }
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
@@ -532,18 +538,50 @@ public class CourseService {
         if (request.getUpperBound() == null)
             request.setUpperBound(String.valueOf(new Timestamp(System.currentTimeMillis() + 31556926000L)));
         else request.setUpperBound(request.getUpperBound() + " 23:59:59");
+        //TODO maybe add subject/grade recognition in searchTerm
         Page<Lesson> lessons;
         int weekLength = -1;
         if (request.isPrivateLesson()) {
-            lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
-                    request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                    request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
-                    Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
+            if (request.getSearchTerm() != null && request.getSearchTerm().contains(" ")) {
+                String[] searchTerms = request.getSearchTerm().split("");
+                lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), searchTerms[0], searchTerms[1],
+                        request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
+                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
+            }
+            else {
+                lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
+                        request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
+                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
+            }
+            if (lessons.isEmpty()) {
+                lessons = lessonTerminRepo.getFilteredLessonTermins(null, null, null,
+                        request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
+                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
+            }
         } else {
-            lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
-                    request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                    request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
-                    Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
+            if (request.getSearchTerm() != null && request.getSearchTerm().contains(" ")) {
+                String[] searchTerms = request.getSearchTerm().split("");
+                lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), searchTerms[0], searchTerms[1],
+                        request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
+                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
+            }
+            else {
+                lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
+                        request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
+                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
+            }
+            if (lessons.isEmpty()) {
+                lessons = courseTerminRepo.getFilteredCourseTermins(null, null, null,
+                        request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
+                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
+
+            }
             weekLength = 0;
         }
         for (Lesson lesson : lessons) {
@@ -606,7 +644,7 @@ public class CourseService {
         return lessonResponses;
     }
 
-    public void addDate(CourseTerminRequestResponse courseRequest, int id, String token) throws CustomException {
+    public List<CourseTerminRequestResponse> addDate(CourseTerminRequestResponse courseRequest, int id, String token) throws CustomException {
         //TODO Check if the teacher has access to the course with id
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
@@ -627,8 +665,10 @@ public class CourseService {
                 themaRepository.save(thema);
             }
         } else {
-            CourseTermin courseTermin = CourseTermin.builder().dateTime(Timestamp.valueOf(courseRequest.getStartDate()
-                            + " " + courseRequest.getCourseHours() + ":00.000"))
+            //TODO Decide about zones in datetimes
+            ZonedDateTime zonedDateTime = ZonedDateTime.parse(courseRequest.getStartDate() + "T" + courseRequest.getCourseHours() + ":00.000+02:00[Europe/Paris]");
+            Timestamp timestamp = Timestamp.from(zonedDateTime.toInstant());
+            CourseTermin courseTermin = CourseTermin.builder().dateTime(timestamp)
                     .courseDays(Arrays.toString(courseRequest.getCourseDaysNumbers()))
                     .courseHoursNumber(Integer.parseInt(courseRequest.getCourseHours().replace(":", "")))
                     .weekLength(courseRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
@@ -648,6 +688,7 @@ public class CourseService {
             lesson.addTermin(courseTermin);
         }
         lessonRepository.save(lesson);
+        return getCourseTerminsTeacher(token, id);
     }
 
     public LessonResponse getCourseInformation(int id, String token) throws CustomException {
@@ -1114,7 +1155,7 @@ public class CourseService {
         return new PagedResponse(reviews.getTotalElements(), 12, null, reviewResponses);
     }
 
-    public Integer addAssignment(AssignmentRequestResponse assignmentRequest, String token, int id) throws CustomException {
+    public Integer addAssignment(AssignmentRequest assignmentRequest, String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
@@ -1126,7 +1167,7 @@ public class CourseService {
             students = courseTermin.getEnrolledStudents();
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).lesson(courseTermin).build();
+                            + " " + assignmentRequest.getTime() + ":00")).lesson(courseTermin).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             courseTerminRepo.save(courseTermin);
         }
@@ -1135,7 +1176,7 @@ public class CourseService {
             students.add(lessonTermin.getStudent());
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).lesson(lessonTermin).build();
+                            + " " + assignmentRequest.getTime() + ":00")).lesson(lessonTermin).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             lessonTerminRepo.save(lessonTermin);
         }
@@ -1146,20 +1187,20 @@ public class CourseService {
         return assignment.getAssignmentID();
     }
 
-    public void editAssignment(AssignmentRequestResponse assignmentRequest, String token, int id) throws CustomException {
+    public void editAssignment(AssignmentRequest assignmentRequest, String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
-        List<Student> students = assignment.getStudents();
+//        List<Student> students = assignment.getStudents();
         assignment.setTitle(assignmentRequest.getTitle());
         assignment.setDescription(assignmentRequest.getDescription());
         assignment.setDueDateTime(Timestamp.valueOf(assignmentRequest.getDate() + " " + assignmentRequest.getTime() + ":00"));
         assignmentRepo.save(assignment);
-        for (Student student : students) {
-            student.addAssignment(assignment);
-            studentRepository.save(student);
-        }
+//        for (Student student : students) {
+//            student.addAssignment(assignment);
+//            studentRepository.save(student);
+//        }
     }
 
     public String uploadAssignmentFiles(String token, int id, String paths) throws CustomException {
@@ -1175,13 +1216,13 @@ public class CourseService {
         return unneededPaths;
     }
 
-    public AssignmentRequestResponse getAssignment(String token, int id) throws CustomException {
+    public AssignmentResponse getAssignment(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         String[] files = assignment.getAssignmentLocation().split(",");
-        AssignmentRequestResponse assignmentResponse = AssignmentRequestResponse.builder().title(assignment.getTitle())
+        AssignmentResponse assignmentResponse = AssignmentResponse.builder().title(assignment.getTitle())
                 .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
                 .fileNames(files).build();
         return assignmentResponse;
@@ -1230,18 +1271,18 @@ public class CourseService {
         if (!thema.getPresentation().equals(requestedFile)) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
     }
 
-    public List<AssignmentRequestResponse> checkSolutions(String token, int id) throws CustomException {
+    public List<AssignmentResponse> checkSolutions(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
-        List<AssignmentRequestResponse> solutions = new ArrayList<>();
+        List<AssignmentResponse> solutions = new ArrayList<>();
         for (Solution solution : assignment.getSolutions()) {
             String status;
             if (solution.isOverdue()) status = "навреме";
             else status = "закъснял";
             String[] solutionFiles = solution.getSolutionFilesLocation().split(",");
-            AssignmentRequestResponse assignmentResponse = AssignmentRequestResponse.builder().id(solution.getSolutionID())
+            AssignmentResponse assignmentResponse = AssignmentResponse.builder().id(solution.getSolutionID())
                     .studentName(solution.getName() + " " + solution.getSurname()).time(solution.getTime())
                     .date(solution.getDate()).status(status).commentAmount(solution.getTeacherCommentCount())
                     .fileNames(solutionFiles).build();
@@ -1262,15 +1303,15 @@ public class CourseService {
         solutionRepo.save(solution);
     }
 
-    public List<AssignmentRequestResponse> getComments(String token, int id) throws CustomException {
+    public List<AssignmentResponse> getComments(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Solution solution = solutionRepo.getSolutionBySolutionID(id);
         if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
         List<Comment> comments = solution.getComments();
-        List<AssignmentRequestResponse> assignmentResponses = new ArrayList<>();
+        List<AssignmentResponse> assignmentResponses = new ArrayList<>();
         for (Comment comment : comments) {
-            AssignmentRequestResponse assignmentResponse = AssignmentRequestResponse.builder().date(comment.getDate())
+            AssignmentResponse assignmentResponse = AssignmentResponse.builder().date(comment.getDate())
                     .time(comment.getTime()).teacherName(teacher.getFirstname() + " " + teacher.getLastname())
                     .comment(comment.getActualComment()).id(comment.getCommentID()).build();
             assignmentResponses.add(assignmentResponse);
