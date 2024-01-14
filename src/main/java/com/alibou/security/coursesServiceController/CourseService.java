@@ -178,7 +178,7 @@ public class CourseService {
                             .courseDays(Arrays.toString(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
+                            .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.UPCOMING).build();
                     courseTerminRepo.save(courseTermin);
                     for (Thema thema : themasForCourse) {
                         thema.setCourseTermin(courseTermin);
@@ -222,7 +222,7 @@ public class CourseService {
                         String hours = timePair.getTime();
                         LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                                 .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
-                                .lessonStatus(LessonStatus.NOT_STARTED).build();
+                                .lessonStatus(LessonStatus.UPCOMING).build();
                         lessonTerminRepo.save(lessonTermin);
                         lessonTermin.setLesson(lesson);
                         lesson.addTermin(lessonTermin);
@@ -318,7 +318,7 @@ public class CourseService {
                             .courseDays(Arrays.toString(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).lessonStatus(LessonStatus.NOT_STARTED).build();
+                            .lesson(lesson).lessonStatus(LessonStatus.UPCOMING).build();
                     courseTerminRepo.save(courseTermin);
                     for (Thema thema : themas1) {
                         thema.setCourseTermin(courseTermin);
@@ -370,7 +370,7 @@ public class CourseService {
                         String hours = timePair.getTime();
                         LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                                 .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
-                                .lessonStatus(LessonStatus.NOT_STARTED).build();
+                                .lessonStatus(LessonStatus.UPCOMING).build();
                         lessonTerminRepo.save(lessonTermin);
                         lessonTermin.setLesson(lesson);
                         lesson.addTermin(lessonTermin);
@@ -489,6 +489,8 @@ public class CourseService {
     public FilterResponse getFilters(boolean isPrivateLesson) {
         List<String> subjects = lessonRepository.getAllSubjects();
         List<String> grades = lessonRepository.getAllGrades();
+        subjects.remove(null);
+        grades.remove(null);
         double[] prices;
         if (isPrivateLesson) {
             prices = new double[]{BOTTOM20PRICE_LESSON, BOTTOM40PRICE_LESSON,
@@ -531,7 +533,16 @@ public class CourseService {
             request.setPriceUpperBound(10000);
             request.setPriceLowerBound(0);
         }
-        if (request.getHoursUpperBound() == 0) request.setHoursUpperBound(2400);
+        int hoursUpperBound;
+        int hoursLowerBound;
+        if (request.getHoursUpperBound() == null) hoursUpperBound = 2400;
+        else {
+            hoursUpperBound = Integer.parseInt(request.getHoursUpperBound().replace(":", ""));
+        }
+        if (request.getHoursLowerBound() == null) hoursLowerBound = 0;
+        else {
+            hoursLowerBound = Integer.parseInt(request.getHoursLowerBound().replace(":", ""));
+        }
         if (request.getLowerBound() == null)
             request.setLowerBound(String.valueOf(Timestamp.valueOf(LocalDateTime.now())));
         else request.setLowerBound(request.getLowerBound() + " 00:00:00");
@@ -546,19 +557,19 @@ public class CourseService {
                 String[] searchTerms = request.getSearchTerm().split("");
                 lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), searchTerms[0], searchTerms[1],
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
             }
             else {
                 lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
             }
             if (lessons.isEmpty()) {
                 lessons = lessonTerminRepo.getFilteredLessonTermins(null, null, null,
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
             }
         } else {
@@ -566,19 +577,19 @@ public class CourseService {
                 String[] searchTerms = request.getSearchTerm().split("");
                 lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), searchTerms[0], searchTerms[1],
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
             }
             else {
                 lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
             }
             if (lessons.isEmpty()) {
                 lessons = courseTerminRepo.getFilteredCourseTermins(null, null, null,
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
-                        request.getHoursLowerBound(), request.getHoursUpperBound(), Timestamp.valueOf(request.getLowerBound()),
+                        hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
 
             }
@@ -653,7 +664,7 @@ public class CourseService {
             String hours = courseRequest.getCourseHours();
             LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                     .dateTime(Timestamp.valueOf(courseRequest.getStartDate() + " " + hours + ":00"))
-                    .lessonStatus(LessonStatus.NOT_STARTED).build();
+                    .lessonStatus(LessonStatus.UPCOMING).build();
             lessonTerminRepo.save(lessonTermin);
             lesson.setHasTermins(true);
             lesson.addTermin(lessonTermin);
@@ -672,7 +683,7 @@ public class CourseService {
                     .courseDays(Arrays.toString(courseRequest.getCourseDaysNumbers()))
                     .courseHoursNumber(Integer.parseInt(courseRequest.getCourseHours().replace(":", "")))
                     .weekLength(courseRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                    .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
+                    .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.UPCOMING).build();
             courseTerminRepo.save(courseTermin);
             List<Thema> themas = lesson.getThemas();
             for (Thema thema : themas) {
@@ -787,8 +798,8 @@ public class CourseService {
         //TODO add paging? or make default lessonstatus to active
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
 
-        if (sort.equals("Частни уроци")) return getStudentPrivateLessons(lessonStatus, student);
-        else if (sort.equals("Курсове")) return getStudentCourses(lessonStatus, student);
+        if (sort.equals("Lessons")) return getStudentPrivateLessons(lessonStatus, student);
+        else if (sort.equals("Courses")) return getStudentCourses(lessonStatus, student);
 
         List<LessonResponse> lessonResponses = new ArrayList<>();
         List<LessonTermin> lessonTermins = student.getPrivateLessons();

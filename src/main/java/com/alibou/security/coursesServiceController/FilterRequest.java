@@ -16,8 +16,8 @@ public class FilterRequest {
     private int[] days;
     private double priceLowerBound;
     private double priceUpperBound;
-    private int hoursLowerBound;
-    private int hoursUpperBound;
+    private String hoursLowerBound;
+    private String hoursUpperBound;
     private String lowerBound;
     private String upperBound;
     private String searchTerm;

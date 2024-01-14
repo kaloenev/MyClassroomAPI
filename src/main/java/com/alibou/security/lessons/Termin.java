@@ -1,16 +1,11 @@
 package com.alibou.security.lessons;
 
-import com.alibou.security.user.Student;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.Hibernate;
 
-import java.io.File;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -25,7 +20,7 @@ public class Termin {
     @GeneratedValue
     protected Integer terminID;
     @Enumerated(EnumType.STRING)
-    protected LessonStatus lessonStatus = LessonStatus.NOT_STARTED;
+    protected LessonStatus lessonStatus = LessonStatus.UPCOMING;
     private Timestamp dateTime;
     protected boolean isFull = false;
     protected boolean isEmpty = true;
