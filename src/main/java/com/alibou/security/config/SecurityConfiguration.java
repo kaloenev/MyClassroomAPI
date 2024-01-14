@@ -121,6 +121,9 @@ public class SecurityConfiguration {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.addAllowedOrigin("http://localhost:3002");
     configuration.addAllowedOrigin("http://localhost:3000");
+    configuration.addAllowedOrigin("https://frontend-test-coei.vercel.app/");
+    configuration.addAllowedOrigin("https://frontend-test-coei-kaloyans-projects-3ca58d7b.vercel.app/");
+    configuration.addAllowedOrigin("https://frontend-test-coei-git-develop-kaloyans-projects-3ca58d7b.vercel.app/");
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");
     configuration.setAllowCredentials(true);
