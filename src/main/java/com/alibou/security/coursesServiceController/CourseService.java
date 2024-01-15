@@ -1,5 +1,8 @@
 package com.alibou.security.coursesServiceController;
 
+import com.alibou.security.emailing.EmailDetails;
+import com.alibou.security.emailing.EmailService;
+import com.alibou.security.emailing.EmailServiceImpl;
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.lessons.*;
 import com.alibou.security.token.TokenRepository;
@@ -46,7 +49,7 @@ public class CourseService {
     public static double BOTTOM80PRICE_LESSON;
     public static double DEVIATION_LESSON;
 
-
+    private EmailService emailService;
     private final LessonRepository lessonRepository;
 
     private final TerminRepo terminRepo;
@@ -67,24 +70,30 @@ public class CourseService {
 
     private final AssignmentRepo assignmentRepo;
 
-    public void enrollUserInCourse(String token, int courseID, int terminID) throws CustomException {
+    public void enrollUserInCourse(String token, int terminID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         CourseTermin termin = courseTerminRepo.getCourseTerminByTerminID(terminID);
+        //TODO Check if payment is present
         if (termin.isFull()) {
             throw new CustomException(HttpStatus.FORBIDDEN, "Error course is full");
         }
         termin.enrollStudent(student);
+        courseTerminRepo.save(termin);
         student.addCourseTermin(termin);
+        studentRepository.save(student);
     }
 
     public void enrollUserInLesson(String token, int courseID, int terminID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         LessonTermin termin = lessonTerminRepo.getLessonTerminByTerminID(terminID);
+        //TODO Check if payment is present
         if (termin.isFull()) {
             throw new CustomException(HttpStatus.FORBIDDEN, "Error course is full");
         }
         termin.enrollStudent(student);
+        lessonTerminRepo.save(termin);
         student.addLessonTermin(termin);
+        studentRepository.save(student);
     }
 
     public void likeCourse(String token, int lessonID) throws CustomException {
@@ -178,7 +187,7 @@ public class CourseService {
                             .courseDays(Arrays.toString(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.UPCOMING).build();
+                            .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
                     courseTerminRepo.save(courseTermin);
                     for (Thema thema : themasForCourse) {
                         thema.setCourseTermin(courseTermin);
@@ -222,7 +231,7 @@ public class CourseService {
                         String hours = timePair.getTime();
                         LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                                 .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
-                                .lessonStatus(LessonStatus.UPCOMING).build();
+                                .lessonStatus(LessonStatus.NOT_STARTED).build();
                         lessonTerminRepo.save(lessonTermin);
                         lessonTermin.setLesson(lesson);
                         lesson.addTermin(lessonTermin);
@@ -318,7 +327,7 @@ public class CourseService {
                             .courseDays(Arrays.toString(courseTerminRequest.getCourseDaysNumbers()))
                             .courseHoursNumber(Integer.parseInt(courseTerminRequest.getCourseHours().replace(":", "")))
                             .weekLength(courseTerminRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                            .lesson(lesson).lessonStatus(LessonStatus.UPCOMING).build();
+                            .lesson(lesson).lessonStatus(LessonStatus.NOT_STARTED).build();
                     courseTerminRepo.save(courseTermin);
                     for (Thema thema : themas1) {
                         thema.setCourseTermin(courseTermin);
@@ -370,7 +379,7 @@ public class CourseService {
                         String hours = timePair.getTime();
                         LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                                 .dateTime(Timestamp.valueOf(privateLessonTermin.getDate() + " " + hours + ":00")).thema(thema1)
-                                .lessonStatus(LessonStatus.UPCOMING).build();
+                                .lessonStatus(LessonStatus.NOT_STARTED).build();
                         lessonTerminRepo.save(lessonTermin);
                         lessonTermin.setLesson(lesson);
                         lesson.addTermin(lessonTermin);
@@ -664,7 +673,7 @@ public class CourseService {
             String hours = courseRequest.getCourseHours();
             LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
                     .dateTime(Timestamp.valueOf(courseRequest.getStartDate() + " " + hours + ":00"))
-                    .lessonStatus(LessonStatus.UPCOMING).build();
+                    .lessonStatus(LessonStatus.NOT_STARTED).build();
             lessonTerminRepo.save(lessonTermin);
             lesson.setHasTermins(true);
             lesson.addTermin(lessonTermin);
@@ -683,7 +692,7 @@ public class CourseService {
                     .courseDays(Arrays.toString(courseRequest.getCourseDaysNumbers()))
                     .courseHoursNumber(Integer.parseInt(courseRequest.getCourseHours().replace(":", "")))
                     .weekLength(courseRequest.getWeekLength()).studentsUpperBound(courseRequest.getStudentsUpperBound())
-                    .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.UPCOMING).build();
+                    .lesson(lesson).placesRemaining(courseRequest.getStudentsUpperBound()).lessonStatus(LessonStatus.NOT_STARTED).build();
             courseTerminRepo.save(courseTermin);
             List<Thema> themas = lesson.getThemas();
             for (Thema thema : themas) {
@@ -736,8 +745,37 @@ public class CourseService {
         return lessonResponse;
     }
 
-    public ClassroomPageResponse getClassroomPage(String token, int terminId, boolean isPrivateLesson) throws CustomException {
-        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+    public void reportCourse(int id, String title, String description, String token, boolean isPrivateLesson) throws CustomException {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        if (student == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+        String email;
+        if (isPrivateLesson) {
+            LessonTermin lessonTermin = lessonTerminRepo.getLessonTerminByTerminID(id);
+            if (lessonTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
+            email = lessonTermin.getLesson().getTeacher().getEmail();
+        } else {
+            CourseTermin courseTermin = courseTerminRepo.getCourseTerminByTerminID(id);
+            if (courseTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
+            email = courseTermin.getLesson().getTeacher().getEmail();
+        }
+        EmailDetails emailDetails = new EmailDetails();
+        emailDetails.setRecipient("kaloyan.enev@gmail.com");
+        emailDetails.setSubject("Report for courseTermin: " + id + " from: " + student.getEmail());
+        emailDetails.setMsgBody("Title: " + title + " \n Description: " + description + "\n Teacher email: " + email);
+        emailService.sendSimpleMail(emailDetails);
+    }
+
+    public ClassroomPageResponse getClassroomPage(String token, int terminId, boolean isPrivateLesson, boolean isTeacher) throws CustomException {
+        Teacher teacher = null;
+        Student student = null;
+        if (isTeacher) {
+            teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+            if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        }
+        else {
+            student = studentRepository.findStudentByTokens_token(token.substring(7));
+            if (student == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+        }
         CourseTermin courseTermin;
         LessonTermin lessonTermin;
         Lesson lesson;
@@ -746,14 +784,25 @@ public class CourseService {
         ClassroomPageResponse classroomPageResponse;
         if (isPrivateLesson) {
             lessonTermin = lessonTerminRepo.getLessonTerminByTerminID(terminId);
+            if (lessonTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             lesson = lessonTermin.getLesson();
-            if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+            if (isTeacher) {
+                if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
+                    throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+            } else {
+                if (!Objects.equals(lessonTermin.getStudent().getId(), student.getId()))
+                    throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+            }
             Thema thema = lessonTermin.getThema();
             ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
                     thema.getPresentation(), thema.getTitle(), thema.getDescription());
             themas.add(themaResponse);
-            Student student = lessonTermin.getStudent();
-            students.add(new UserProfileResponse(student.getId(), student.getFirstname(), student.getLastname()));
+            if (isTeacher) {
+                Student terminStudent = lessonTermin.getStudent();
+                students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(), terminStudent.getLastname()));
+            } else {
+                students = null;
+            }
             //endTime
             Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                     + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
@@ -765,15 +814,29 @@ public class CourseService {
         }
         else {
             courseTermin = courseTerminRepo.getCourseTerminByTerminID(terminId);
+            if (courseTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             lesson = courseTermin.getLesson();
-            if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+            if (isTeacher) {
+                if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
+                    throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+                for (Student terminStudent :  courseTermin.getEnrolledStudents()) {
+                    students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(), terminStudent.getLastname()));
+                }
+            } else {
+                boolean isInCourse = false;
+               for (Student terminStudent : courseTermin.getEnrolledStudents()) {
+                   if (!Objects.equals(terminStudent.getId(), student.getId())) {
+                       isInCourse = true;
+                       break;
+                   }
+               }
+               if (!isInCourse) throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+               students = null;
+            }
             for (Thema thema : courseTermin.getThemas()) {
                 ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
                         thema.getPresentation(), thema.getTitle(), thema.getDescription());
                 themas.add(themaResponse);
-            }
-            for (Student student :  courseTermin.getEnrolledStudents()) {
-                students.add(new UserProfileResponse(student.getId(), student.getFirstname(), student.getLastname()));
             }
             String endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
             //endTime
@@ -794,12 +857,15 @@ public class CourseService {
         return classroomPageResponse;
     }
 
-    public List<LessonResponse> getStudentAll(String token, LessonStatus lessonStatus, String sort) throws ClassCastException, CustomException {
+    public List<LessonResponse> getStudentAll(String token, LessonRequest lessonRequest, String sort) throws ClassCastException, CustomException {
         //TODO add paging? or make default lessonstatus to active
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+//        if (lessonRequest.getSort() == null || lessonRequest.getSort() == "") {
+//
+//        }
 
-        if (sort.equals("Lessons")) return getStudentPrivateLessons(lessonStatus, student);
-        else if (sort.equals("Courses")) return getStudentCourses(lessonStatus, student);
+        if (sort.equals("Lessons")) return getStudentPrivateLessons(lessonRequest, student);
+        else if (sort.equals("Courses")) return getStudentCourses(lessonRequest, student);
 
         List<LessonResponse> lessonResponses = new ArrayList<>();
         List<LessonTermin> lessonTermins = student.getPrivateLessons();
@@ -808,53 +874,57 @@ public class CourseService {
         for (CourseTermin courseTermin : student.getCourses()) {
             LessonResponse lessonResponse;
             if (counter > lessonsLength) {
-                if (!courseTermin.getLessonStatus().equals(lessonStatus)) continue;
+                if (!courseTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
                 CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                 Lesson lesson = courseTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
+                lessonResponse.setLength(lesson.getLength());
                 lessonResponses.add(lessonResponse);
                 continue;
             }
             LessonTermin lessonTermin = lessonTermins.get(counter);
             if (courseTermin.getDateTime().before(lessonTermin.getDateTime())) {
-                if (!courseTermin.getLessonStatus().equals(lessonStatus)) continue;
+                if (!courseTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
                 CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                 Lesson lesson = courseTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
+                lessonResponse.setLength(lesson.getLength());
             } else {
-                if (!lessonTermin.getLessonStatus().equals(lessonStatus)) continue;
+                if (!lessonTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
                 Lesson lesson = lessonTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                         lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
                 counter++;
+                lessonResponse.setLength(lesson.getLength());
             }
             lessonResponses.add(lessonResponse);
         }
         while (counter <= lessonsLength) {
             LessonResponse lessonResponse;
             LessonTermin lessonTermin = lessonTermins.get(counter);
-            if (!lessonTermin.getLessonStatus().equals(lessonStatus)) continue;
+            if (!lessonTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
             Lesson lesson = lessonTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
             lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                     teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                     lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
+            lessonResponse.setLength(lesson.getLength());
             lessonResponses.add(lessonResponse);
             counter++;
         }
         return lessonResponses;
     }
 
-    private List<LessonResponse> getStudentPrivateLessons(LessonStatus lessonStatus, Student student) {
+    private List<LessonResponse> getStudentPrivateLessons(LessonRequest lessonRequest, Student student) {
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (LessonTermin lessonTermin : student.getPrivateLessons()) {
-            if (!lessonTermin.getLessonStatus().equals(lessonStatus)) continue;
+            if (!lessonTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
             Lesson lesson = lessonTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
             LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
@@ -866,10 +936,10 @@ public class CourseService {
         return lessonResponses;
     }
 
-    private List<LessonResponse> getStudentCourses(LessonStatus lessonStatus, Student student) {
+    private List<LessonResponse> getStudentCourses(LessonRequest lessonRequest, Student student) {
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (CourseTermin courseTermin : student.getCourses()) {
-            if (!courseTermin.getLessonStatus().equals(lessonStatus)) continue;
+            if (!courseTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
             CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
             Lesson lesson = courseTermin.getLesson();
             Teacher teacher = lesson.getTeacher();
