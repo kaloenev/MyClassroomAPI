@@ -8,12 +8,17 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -21,6 +26,11 @@ import java.io.IOException;
 @CrossOrigin
 public class UserController {
 
+    private int filenameCounter = 0;
+
+    private String defaultImagePath = "defaultImage_";
+
+    private Random random = new Random();
     private final UserService userService;
 
     @GetMapping("/verifyTeacher/form")
@@ -48,11 +58,25 @@ public class UserController {
         return ResponseEntity.ok(teacherId);
     }
 
-    @PostMapping("/setTeacherImage/{id}")
-    public ResponseEntity<Object> setTeacherImage(@RequestParam("file") MultipartFile requestFile,
-                                                  HttpServletRequest httpRequest, @PathVariable int id) {
+    @PostMapping("/uploadImageStudent/{imageId}")
+    public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile[] requestFiles, @PathVariable int imageId,
+                                                  HttpServletRequest httpRequest) {
         try {
-            userService.saveTeacherImage(httpRequest.getHeader("Authorization"), id, requestFile);
+            if (imageId > 0 && imageId < 5) {
+                userService.saveStudentImage(httpRequest.getHeader("Authorization"), defaultImagePath + imageId);
+            }
+            else  {
+                if (requestFiles.length > 1) {
+                    CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
+                    return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+                }
+                Path newFile;
+                newFile = Paths.get("Student_Image_" + random.nextInt(Integer.MAX_VALUE) + "_"
+                        + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
+                filenameCounter++;
+                Files.copy(requestFiles[0].getInputStream(), newFile);
+                userService.saveStudentImage(httpRequest.getHeader("Authorization"), newFile.toString());
+            }
         } catch (IOException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -65,24 +89,64 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/setStudentImage/id={id}&image={imageId} ")
-    public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile requestFile, @PathVariable int imageId,
-                                                  HttpServletRequest httpRequest, @PathVariable int id) {
+    @GetMapping("/getTeacherImage/{id}")
+    public ResponseEntity<Object> getTeacherImage(@PathVariable int id) throws IOException {
+        String path;
         try {
-            if (imageId > 0 && imageId < 5) {
-                userService.saveStudentDefaultImage(httpRequest.getHeader("Authorization"), imageId);
-            }
-            else userService.saveStudentImage(httpRequest.getHeader("Authorization"), id, requestFile);
-        } catch (IOException e) {
-            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+            path = userService.getTeacherImage(id);
         } catch (CustomException e) {
-            e.printStackTrace();
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        // The file to be downloaded.
+        Path file = Paths.get(path);
+
+        // Get the media type of the file
+        String contentType = Files.probeContentType(file);
+        if (contentType == null) {
+            // Use the default media type
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+
+        // Load file data into a byte array
+        byte[] fileData = Files.readAllBytes(file);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", contentType);
+        headers.add("Content-Disposition", "attachment; filename=\"%s\"".formatted(file.getFileName()));
+
+        return new ResponseEntity<>(fileData, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/getStudentImage/{id}")
+    public ResponseEntity<Object> getStudentImage(@PathVariable int id) throws IOException {
+        String path;
+        try {
+            path = userService.getStudentImage(id);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+
+        // The file to be downloaded.
+        Path file = Paths.get(path);
+
+        // Get the media type of the file
+        String contentType = Files.probeContentType(file);
+        if (contentType == null) {
+            // Use the default media type
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+
+        // Load file data into a byte array
+        byte[] fileData = Files.readAllBytes(file);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", contentType);
+        headers.add("Content-Disposition", "attachment; filename=\"%s\"".formatted(file.getFileName()));
+
+        return new ResponseEntity<>(fileData, headers, HttpStatus.OK);
     }
 
     @GetMapping("/getTeacherProfile/{id}")
@@ -105,6 +169,27 @@ public class UserController {
     @GetMapping("/getLikedTeachers")
     public ResponseEntity<Object> getLikedTeachers(HttpServletRequest httpServletRequest) {
         return ResponseEntity.ok(userService.getFavouriteTeachers(httpServletRequest.getHeader("Authorization")));
+    }
+
+    @PostMapping("/uploadImageTeacher")
+    public ResponseEntity<Object> uploadImage(@RequestParam("file") MultipartFile[] requestFiles,
+                                              HttpServletRequest httpRequest) {
+        if (requestFiles.length > 1) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        Path newFile;
+        newFile = Paths.get("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
+                + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
+        filenameCounter++;
+        try {
+            Files.copy(requestFiles[0].getInputStream(), newFile);
+            userService.saveTeacherImage(httpRequest.getHeader("Authorization"), newFile.toString());
+        } catch (IOException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/likeTeacher/{id}")

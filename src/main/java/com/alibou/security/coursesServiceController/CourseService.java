@@ -481,12 +481,19 @@ public class CourseService {
         return homePageResponse;
     }
 
-    public void leaveReview(String token, ReviewRequest reviewRequest) {
+    public void leaveReview(String token, ReviewRequest reviewRequest) throws CustomException {
         //TODO Change from Teacher to Student!
         Lesson lesson = lessonRepository.getLessonByLessonID(reviewRequest.getLessonId());
-        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        if (reviewRequest.getRating() < 1 || reviewRequest.getRating() > 5) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "Рейтингът трябва да е между 1 и 5");
+        }
+        if (reviewRequest.getMessage() == null || reviewRequest.getMessage().isEmpty()) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "Моля напишете и отзив във формата на текст");
+        }
+        Teacher teacher = lesson.getTeacher();
         Review review = Review.builder().dateTime(Timestamp.valueOf(LocalDateTime.now())).lesson(lesson).message(reviewRequest.getMessage())
-                .rating(reviewRequest.getRating()).studentName(teacher.getFirstname()).studentSurname(teacher.getLastname())
+                .rating(reviewRequest.getRating()).studentName(student.getFirstname()).studentSurname(student.getLastname())
                 .teacher(teacher).build();
         reviewRepo.save(review);
         lesson.leaveReview(review);
@@ -797,25 +804,29 @@ public class CourseService {
             ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
                     thema.getPresentation(), thema.getTitle(), thema.getDescription());
             themas.add(themaResponse);
+            String teacherName = null;
             if (isTeacher) {
                 Student terminStudent = lessonTermin.getStudent();
                 students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(), terminStudent.getLastname()));
             } else {
                 students = null;
+                teacher = lesson.getTeacher();
+                teacherName = teacher.getFirstname() + " " + teacher.getLastname();
             }
             //endTime
             Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                     + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
             classroomPageResponse = ClassroomPageResponse.builder().lessonTitle(lesson.getTitle())
                     .lessonDescription(lesson.getDescription()).courseHours(lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)
-                    ).startDate(lessonTermin.getDate())
+                    ).startDate(lessonTermin.getDate()).teacherId(teacher.getId())
                     .themas(themas).courseTerminId(lessonTermin.getTerminID())
-                    .enrolledStudents(1).students(students).build();
+                    .enrolledStudents(1).students(students).teacherName(teacherName).build();
         }
         else {
             courseTermin = courseTerminRepo.getCourseTerminByTerminID(terminId);
             if (courseTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             lesson = courseTermin.getLesson();
+            String teacherName = null;
             if (isTeacher) {
                 if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
                     throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
@@ -825,13 +836,15 @@ public class CourseService {
             } else {
                 boolean isInCourse = false;
                for (Student terminStudent : courseTermin.getEnrolledStudents()) {
-                   if (!Objects.equals(terminStudent.getId(), student.getId())) {
+                   if (Objects.equals(terminStudent.getId(), student.getId())) {
                        isInCourse = true;
                        break;
                    }
                }
                if (!isInCourse) throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
                students = null;
+                teacher = lesson.getTeacher();
+                teacherName = teacher.getFirstname() + " " + teacher.getLastname();
             }
             for (Thema thema : courseTermin.getThemas()) {
                 ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
@@ -850,9 +863,9 @@ public class CourseService {
             }
             classroomPageResponse = ClassroomPageResponse.builder().lessonTitle(lesson.getTitle())
                     .lessonDescription(lesson.getDescription()).courseHours(courseTermin.getTime() + " - " + timestamp.toString().substring(11, 16))
-                    .startDate(courseTermin.getDate()).courseDaysNumbers(days)
+                    .startDate(courseTermin.getDate()).courseDaysNumbers(days).teacherId(teacher.getId())
                     .enrolledStudents(courseTermin.getStudentsUpperBound() - courseTermin.getPlacesRemaining()).endDate(endDate)
-                    .themas(themas).courseTerminId(courseTermin.getTerminID()).students(students).build();
+                    .themas(themas).courseTerminId(courseTermin.getTerminID()).students(students).teacherName(teacherName).build();
         }
         return classroomPageResponse;
     }
@@ -955,17 +968,17 @@ public class CourseService {
         List<LessonResponse> lessonResponses = new ArrayList<>();
         Pageable sortedAndPaged;
         switch (sort) {
-            case "Най-популярни" ->
+            case "Most popular" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("popularity").descending());
-            case "Най-скъпи" ->
+            case "Most expensive" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_price").descending());
-            case "Най-евтини" ->
+            case "Cheapest" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_price").ascending());
-            case "Най-висок рейтинг" ->
+            case "Highest rating" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_rating").descending());
-            case "Най-скоро започващи" ->
+            case "Starting soonest" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
-            case "Най-нови" -> {
+            case "Newest" -> {
                 List<Lesson> lessons = student.getFavouriteLessons();
                 for (int i = (pageNumber - 1) * 12; i < pageNumber * 12; i++) {
                     Lesson lesson = lessons.get(i);
@@ -1343,13 +1356,13 @@ public class CourseService {
         if (!hasFile) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
     }
 
-    public void getResourceFile(String token, int id, String requestedFile) throws CustomException {
+    public String getResourceFile(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
         if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
-        if (thema.getPresentation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени ресурсу към тази тема");
-        if (!thema.getPresentation().equals(requestedFile)) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
+        if (thema.getPresentation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени ресурси към тази тема");
+        return thema.getPresentation();
     }
 
     public List<AssignmentResponse> checkSolutions(String token, int id) throws CustomException {

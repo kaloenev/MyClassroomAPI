@@ -14,6 +14,9 @@ public class ThemaResponse {
     protected String linkToRecording;
     protected String linkToClassroom;
     protected String presentation;
+    //TODO Add commented out lines
+//    protected int studentsNumber;
+//    protected int studentSolutions;
     private String title;
     private String description;
 }

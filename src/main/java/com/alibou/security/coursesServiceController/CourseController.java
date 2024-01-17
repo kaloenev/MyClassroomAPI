@@ -204,19 +204,19 @@ public class CourseController {
     }
 
     @PostMapping("/addResource/{id}")
-    public ResponseEntity<Object> getResource(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
+    public ResponseEntity<Object> addResource(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
                                                      HttpServletRequest httpRequest) {
         if (requestFiles.length > 1) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-            File newFile;
-            newFile = new File("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
+            Path newFile;
+            newFile = Paths.get("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
                     + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
             filenameCounter++;
             try {
-                requestFiles[0].transferTo(newFile);
-                courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.getPath());
+                Files.copy(requestFiles[0].getInputStream(), newFile);
+                courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.toString());
             } catch (IOException | CustomException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -307,6 +307,7 @@ public class CourseController {
     @PostMapping("/uploadAssignmentFiles/{id}")
     public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
                                               HttpServletRequest httpRequest) {
+        //TODO Check if the person is using this only for a new Assignment (more than 4 files risk)
         if (requestFiles.length > 4) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -314,17 +315,17 @@ public class CourseController {
         String paths;
         StringBuilder pathBuilder = new StringBuilder();
         for (MultipartFile requestFile : requestFiles) {
-            File newFile;
-            newFile = new File("Assignment_" + random.nextInt(Integer.MAX_VALUE) + "_"
+            Path newFile;
+            newFile = Paths.get("Assignment_" + random.nextInt(Integer.MAX_VALUE) + "_"
                     + filenameCounter + "_" + requestFile.getOriginalFilename());
             filenameCounter++;
             try {
-                requestFile.transferTo(newFile);
+                Files.copy(requestFile.getInputStream(), newFile);
             } catch (IOException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
             }
-            pathBuilder.append(newFile.getPath()).append(",");
+            pathBuilder.append(newFile).append(",");
         }
         if (pathBuilder.isEmpty()) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
@@ -398,11 +399,8 @@ public class CourseController {
         byte[] fileData = Files.readAllBytes(file);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(contentType));
-        headers.setContentLength(fileData.length);
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(file.getFileName().toString(), StandardCharsets.UTF_8)
-                .build());
+        headers.add("Content-Type", contentType);
+        headers.add("Content-Disposition", "attachment; filename=\"%s\"".formatted(file.getFileName()));
 
         return new ResponseEntity<>(fileData, headers, HttpStatus.OK);
     }
@@ -431,11 +429,8 @@ public class CourseController {
         byte[] fileData = Files.readAllBytes(file);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(contentType));
-        headers.setContentLength(fileData.length);
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(file.getFileName().toString(), StandardCharsets.UTF_8)
-                .build());
+        headers.add("Content-Type", contentType);
+        headers.add("Content-Disposition", "attachment; filename=\"%s\"".formatted(file.getFileName()));
 
         return new ResponseEntity<>(fileData, headers, HttpStatus.OK);
     }
@@ -475,11 +470,11 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/getResourceFile/{path}&&{id}")
-    public ResponseEntity<Object> getResourceFile (@PathVariable String path, @PathVariable int id, HttpServletRequest httpRequest) throws IOException {
-
+    @GetMapping("/getResourceFile/{id}")
+    public ResponseEntity<Object> getResourceFile (@PathVariable int id, HttpServletRequest httpRequest) throws IOException {
+        String path;
         try {
-            courseService.getResourceFile(httpRequest.getHeader("Authorization"), id, path);
+            path = courseService.getResourceFile(httpRequest.getHeader("Authorization"), id);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -499,11 +494,8 @@ public class CourseController {
         byte[] fileData = Files.readAllBytes(file);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(contentType));
-        headers.setContentLength(fileData.length);
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(file.getFileName().toString(), StandardCharsets.UTF_8)
-                .build());
+        headers.add("Content-Type", contentType);
+        headers.add("Content-Disposition", "attachment; filename=\"%s\"".formatted(file.getFileName()));
 
         return new ResponseEntity<>(fileData, headers, HttpStatus.OK);
     }
@@ -548,7 +540,7 @@ public class CourseController {
     public ResponseEntity<Object> leaveReview(@RequestBody ReviewRequest reviewRequest, HttpServletRequest httpRequest) {
         try {
             courseService.leaveReview(httpRequest.getHeader("Authorization"), reviewRequest);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
@@ -659,6 +651,20 @@ public class CourseController {
         try {
             return ResponseEntity.ok(courseService.getStudentAll(httpServletRequest.getHeader("Authorization"),
                     lessonRequest, ""));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        } catch (IllegalArgumentException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @PostMapping("/getFavouriteCourses")
+    public ResponseEntity<Object> getFavouriteCourses(HttpServletRequest httpServletRequest, @RequestBody LessonRequest lessonRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getFavouriteCourses(httpServletRequest.getHeader("Authorization"),
+                    lessonRequest.getSort(), lessonRequest.getPage()));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

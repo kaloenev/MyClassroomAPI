@@ -27,6 +27,7 @@ public class Assignment {
     private Timestamp dueDateTime;
     private String assignmentLocation;
 
+    //TODO Change assignments to be for each thema not termin
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
     @ToString.Exclude

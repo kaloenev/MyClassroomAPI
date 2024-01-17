@@ -142,28 +142,31 @@ public class UserService {
         return teacher.getId();
     }
 
-    public void saveTeacherImage(String token, int id, MultipartFile requestFile) throws IOException, CustomException {
+    //TODO Add exceptions, също форбидън трябва да препраща към логин
+    public void saveTeacherImage(String token, String fileName) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        String fileName = "image_user" + id;
-        File newFile = new File(fileName);
-        requestFile.transferTo(newFile);
-        if (!newFile.createNewFile()) throw new CustomException(HttpStatus.BAD_REQUEST, "Could not create file");
+        if (teacher == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
         teacher.setPictureLocation(fileName);
+        teacherRepository.save(teacher);
     }
 
-    public void saveStudentImage(String token, int id, MultipartFile requestFile) throws CustomException, IOException {
+    public void saveStudentImage(String token, String fileName) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        String fileName = "image_user_" + id;
-        File newFile = new File(fileName);
-        requestFile.transferTo(newFile);
-        if (!newFile.createNewFile()) throw new CustomException(HttpStatus.BAD_REQUEST, "Could not create file");
+        if (student == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
         student.setPictureLocation(fileName);
+        studentRepository.save(student);
     }
 
-    public void saveStudentDefaultImage(String token, int imageId) throws CustomException {
-        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        String fileName = "image_user_default_" + imageId;
-        student.setPictureLocation(fileName);
+    public String getTeacherImage(int teacherId) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherById(teacherId);
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с това id");
+        return teacher.getPictureLocation();
+    }
+
+    public String getStudentImage(int studentId) throws CustomException {
+        Student student = studentRepository.findStudentById(studentId);
+        if (student == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен студент с това id");
+        return student.getPictureLocation();
     }
 
     public void verifyTeacherExperience(int id, String experience) {

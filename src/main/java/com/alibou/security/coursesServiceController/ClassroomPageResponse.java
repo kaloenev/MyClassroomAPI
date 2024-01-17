@@ -13,7 +13,9 @@ import java.util.List;
 @AllArgsConstructor
 public class ClassroomPageResponse {
     private String lessonTitle;
+    private int teacherId;
     private String lessonDescription;
+    private String teacherName;
     private int courseTerminId;
     private String startDate;
     private String endDate;
