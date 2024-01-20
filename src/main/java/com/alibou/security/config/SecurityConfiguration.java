@@ -20,6 +20,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +47,8 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity
-public class SecurityConfiguration {
+@EnableWebMvc
+public class SecurityConfiguration implements WebMvcConfigurer {
 
   private final JwtAuthenticationFilter jwtAuthFilter;
   private final AuthenticationProvider authenticationProvider;
@@ -55,9 +59,10 @@ public class SecurityConfiguration {
     http
             .csrf()
             .disable()
-            .cors(cors -> {
-              cors.configurationSource(corsConfigurationSource());
-            })
+//            .cors(cors -> {
+//              cors.configurationSource(corsConfigurationSource());
+//            })
+            .cors().and()
             .authorizeHttpRequests()
             .requestMatchers(
                     "/api/v1/auth/**",
@@ -116,22 +121,30 @@ public class SecurityConfiguration {
     return http.build();
   }
 
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.addAllowedOrigin("http://localhost:3002");
-    configuration.addAllowedOrigin("http://localhost:3000");
-    configuration.addAllowedOrigin("https://frontend-test-coei.vercel.app/");
-    configuration.addAllowedOrigin("https://frontend-test-coei-kaloyans-projects-3ca58d7b.vercel.app/");
-    configuration.addAllowedOrigin("https://frontend-test-coei-git-develop-kaloyans-projects-3ca58d7b.vercel.app/");
-    configuration.addAllowedMethod("*");
-    configuration.addAllowedHeader("*");
-    configuration.setAllowCredentials(true);
-    UrlBasedCorsConfigurationSource source = new
-            UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
+  @Override
+  public void addCorsMappings(CorsRegistry registry) {
+    registry.addMapping("/api/**")
+            .allowedOrigins("https://frontendtest-v3.onrender.com")
+            .allowedMethods("POST", "GET")
+            .allowCredentials(true);
   }
+
+//  @Bean
+//  public CorsConfigurationSource corsConfigurationSource() {
+//    CorsConfiguration configuration = new CorsConfiguration();
+//    configuration.addAllowedOrigin("http://localhost:3002");
+//    configuration.addAllowedOrigin("http://localhost:3000");
+//    configuration.addAllowedOrigin("https://frontend-test-coei.vercel.app/");
+//    configuration.addAllowedOrigin("https://frontend-test-coei-kaloyans-projects-3ca58d7b.vercel.app/");
+//    configuration.addAllowedOrigin("https://frontend-test-coei-git-develop-kaloyans-projects-3ca58d7b.vercel.app/");
+//    configuration.addAllowedMethod("*");
+//    configuration.addAllowedHeader("*");
+//    configuration.setAllowCredentials(true);
+//    UrlBasedCorsConfigurationSource source = new
+//            UrlBasedCorsConfigurationSource();
+//    source.registerCorsConfiguration("/**", configuration);
+//    return source;
+//  }
 
 //  @Bean
 //  CorsWebFilter corsFilter() {
