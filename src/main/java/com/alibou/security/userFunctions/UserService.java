@@ -185,8 +185,11 @@ public class UserService {
 
     public void dislikeTeacher(String token, int teacherID) {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        student.removeTeacherFromLiked(teacherRepository.findTeacherById(teacherID));
+        Teacher teacher = teacherRepository.findTeacherById(teacherID);
+        student.removeTeacherFromLiked(teacher);
         studentRepository.save(student);
+        teacher.removeStudentFromIsLiked(student);
+        teacherRepository.save(teacher);
     }
 
     public VerificationFormResponse getVerificationForm() {

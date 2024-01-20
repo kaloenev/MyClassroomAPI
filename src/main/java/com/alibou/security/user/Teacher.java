@@ -82,6 +82,10 @@ public class Teacher extends User {
         return isVerified;
     }
 
+    public void removeStudentFromIsLiked(Student student) {
+        isLikedByStudent.remove(student);
+    }
+
     public void verifyAccount() {
         isVerified = true;
         timeOfVerificationRequest = new Timestamp(System.currentTimeMillis());

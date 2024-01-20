@@ -103,7 +103,11 @@ public class CourseService {
 
     public void dislikeCourse(String token, int lessonID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        student.removeLessonsFromLiked(lessonRepository.getLessonByLessonID(lessonID));
+        Lesson lesson = lessonRepository.getLessonByLessonID(lessonID);
+        student.removeLessonsFromLiked(lesson);
+        studentRepository.save(student);
+        lesson.removeFromIsLiked(student);
+        lessonRepository.save(lesson);
     }
 
     public void publishDraft(String token, int id) throws CustomException {
