@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.web.cors.CorsConfiguration;
@@ -47,8 +48,8 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity
-@EnableWebMvc
-public class SecurityConfiguration implements WebMvcConfigurer {
+//@EnableWebMvc
+public class SecurityConfiguration {
 
   private final JwtAuthenticationFilter jwtAuthFilter;
   private final AuthenticationProvider authenticationProvider;
@@ -56,7 +57,7 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
+    http.addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class)
             .csrf()
             .disable()
 //            .cors(cors -> {
@@ -120,15 +121,15 @@ public class SecurityConfiguration implements WebMvcConfigurer {
     return http.build();
   }
 
-  @Override
-  public void addCorsMappings(CorsRegistry registry) {
-    registry.addMapping("/api/**")
-            .allowedOriginPatterns("*")
-            .allowedMethods("POST", "OPTIONS", "GET")
-            .allowedHeaders("*")
-            .exposedHeaders("*")
-            .allowCredentials(true);
-  }
+//  @Override
+//  public void addCorsMappings(CorsRegistry registry) {
+//    registry.addMapping("/api/**")
+//            .allowedOriginPatterns("*")
+//            .allowedMethods("POST", "OPTIONS", "GET")
+//            .allowedHeaders("*")
+//            .exposedHeaders("*")
+//            .allowCredentials(true);
+//  }
 
 //  @Bean
 //  public CorsConfigurationSource corsConfigurationSource() {
