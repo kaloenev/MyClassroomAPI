@@ -171,6 +171,17 @@ public class UserController {
         return ResponseEntity.ok(userService.getFavouriteTeachers(httpServletRequest.getHeader("Authorization")));
     }
 
+    @GetMapping("/dislikeTeacher/{id}")
+    public ResponseEntity<Object> dislikeCourse(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            userService.dislikeTeacher(httpRequest.getHeader("Authorization"), id);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/uploadImageTeacher")
     public ResponseEntity<Object> uploadImage(@RequestParam("file") MultipartFile[] requestFiles,
                                               HttpServletRequest httpRequest) {

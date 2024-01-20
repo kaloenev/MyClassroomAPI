@@ -125,6 +125,7 @@ public class SecurityConfiguration implements WebMvcConfigurer {
     registry.addMapping("/api/**")
             .allowedOrigins("https://frontendtest-v3.onrender.com")
             .allowedMethods("POST", "GET")
+            .allowedHeaders("*")
             .allowCredentials(true);
   }
 

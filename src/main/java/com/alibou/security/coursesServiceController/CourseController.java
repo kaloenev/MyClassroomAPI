@@ -203,6 +203,17 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @GetMapping("/dislikeCourse/{id}")
+    public ResponseEntity<Object> dislikeCourse(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            courseService.dislikeCourse(httpRequest.getHeader("Authorization"), id);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PostMapping("/addResource/{id}")
     public ResponseEntity<Object> addResource(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
                                                      HttpServletRequest httpRequest) {

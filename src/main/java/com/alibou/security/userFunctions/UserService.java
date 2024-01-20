@@ -183,7 +183,7 @@ public class UserService {
         teacherRepository.save(teacher);
     }
 
-    public void dislikeTeacher(String token, int teacherID) {
+    public void dislikeTeacher(String token, int teacherID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         Teacher teacher = teacherRepository.findTeacherById(teacherID);
         student.removeTeacherFromLiked(teacher);
