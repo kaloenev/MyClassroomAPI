@@ -123,9 +123,10 @@ public class SecurityConfiguration implements WebMvcConfigurer {
   @Override
   public void addCorsMappings(CorsRegistry registry) {
     registry.addMapping("/api/**")
-            .allowedOrigins("https://frontendtest-v3.onrender.com")
-            .allowedMethods("POST", "GET")
+            .allowedOriginPatterns("*")
+            .allowedMethods("POST", "OPTIONS", "GET")
             .allowedHeaders("*")
+            .exposedHeaders("*")
             .allowCredentials(true);
   }
 
