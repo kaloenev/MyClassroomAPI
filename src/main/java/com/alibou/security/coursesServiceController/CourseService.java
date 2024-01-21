@@ -98,7 +98,11 @@ public class CourseService {
 
     public void likeCourse(String token, int lessonID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        student.saveLessonToLiked(lessonRepository.getLessonByLessonID(lessonID));
+        Lesson lesson = lessonRepository.getLessonByLessonID(lessonID);
+        student.saveLessonToLiked(lesson);
+        studentRepository.save(student);
+        lesson.addToIsLiked(student);
+        lessonRepository.save(lesson);
     }
 
     public void dislikeCourse(String token, int lessonID) throws CustomException {
@@ -967,21 +971,24 @@ public class CourseService {
         return lessonResponses;
     }
 
-    public List<LessonResponse> getFavouriteCourses(String token, String sort, int pageNumber) throws ClassCastException, CustomException {
+    public PagedResponse getFavouriteCourses(String token, String sort, int pageNumber) throws ClassCastException, CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<LessonResponse> lessonResponses = new ArrayList<>();
         Pageable sortedAndPaged;
+        boolean sortByCourse = false;
         switch (sort) {
             case "Most popular" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("popularity").descending());
             case "Most expensive" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_price").descending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("price").descending());
             case "Cheapest" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_price").ascending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("price").ascending());
             case "Highest rating" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("lesson_rating").descending());
-            case "Starting soonest" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
+//            case "Starting soonest" -> {
+//                sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
+//                sortByCourse = true;
+//            }
             case "Newest" -> {
                 List<Lesson> lessons = student.getFavouriteLessons();
                 for (int i = (pageNumber - 1) * 12; i < pageNumber * 12; i++) {
@@ -1000,37 +1007,35 @@ public class CourseService {
                     }
                     lessonResponses.add(lessonResponse);
                 }
-                return lessonResponses;
+                return new PagedResponse(lessons.size(), 12, lessonResponses, null);
             }
-            default -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
-        }
-        List<Lesson> lessons = lessonRepository.getLessonByisLikedByStudent_id(student.getId(), sortedAndPaged);
-        for (Lesson lesson : lessons) {
-            List<CourseTermin> termins;
-            List<LessonTermin> termins2;
-            LessonResponse lessonResponse;
-            if (!lesson.isPrivateLesson()) {
-                termins = lesson.getCourseTermins();
-                lessonResponse = new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
-                        termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
-                lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
-            } else {
-                termins2 = lesson.getLessonTermins();
-                lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
+            default -> {
+                sortedAndPaged = PageRequest.of(pageNumber - 1, 12);
+                sortByCourse = true;
             }
-            lessonResponses.add(lessonResponse);
         }
-        return lessonResponses;
-    }
-
-    public List<TeacherResponse> getFavouriteTeachers(String token) throws ClassCastException, CustomException {
-        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        List<TeacherResponse> teachers = new ArrayList<>();
-        for (Teacher teacher : student.getFavouriteTeachers()) {
-            TeacherResponse teacherResponse = new TeacherResponse(teacher);
-            teachers.add(teacherResponse);
+        Page<Lesson> lessons;
+        if (sortByCourse) {
+            lessons = lessonRepository.getLessonByIsLikedByStudentOrderByDateTime(student.getId(), sortedAndPaged);
+        } else {
+            lessons = lessonRepository.getLessonByisLikedByStudent_id(student.getId(), sortedAndPaged);
         }
-        return teachers;
+            for (Lesson lesson : lessons) {
+                List<CourseTermin> termins;
+                List<LessonTermin> termins2;
+                LessonResponse lessonResponse;
+                if (!lesson.isPrivateLesson()) {
+                    termins = lesson.getCourseTermins();
+                    lessonResponse = new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
+                            termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
+                    lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
+                } else {
+                    termins2 = lesson.getLessonTermins();
+                    lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
+                }
+                lessonResponses.add(lessonResponse);
+            }
+        return new PagedResponse(lessons.getTotalElements(), 12 ,lessonResponses, null);
     }
 
     public List<LessonResponse> getTeacherLessons(String token, String lessonStatus, boolean privateLessons, boolean upcoming) throws ClassCastException, CustomException {

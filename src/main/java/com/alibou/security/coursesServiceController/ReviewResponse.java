@@ -19,11 +19,14 @@ public class ReviewResponse {
     private String studentName;
     private String studentSurname;
 
+    private String lessonTitle;
+
     public ReviewResponse(Review review) {
         date = review.getDateTime().toString().substring(0, 10);
         message = review.getMessage();
         rating = review.getRating();
         studentName = review.getStudentName();
         studentSurname = review.getStudentSurname();
+        lessonTitle = review.getLesson().getTitle();
     }
 }

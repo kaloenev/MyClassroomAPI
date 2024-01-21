@@ -70,10 +70,10 @@ public class LessonResponse {
         description = lesson.getDescription();
         grade = lesson.getGrade();
         subject = lesson.getSubject();
-        price = lesson.getPrice();
+        price = Math.round(lesson.getPrice() * 100.0) / 100.0;
         length = lesson.getLength();
         studentsUpperBound = lesson.getStudentsUpperBound();
-        rating = lesson.getRating();
+        rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
         firstDate = dateTime;
@@ -92,11 +92,11 @@ public class LessonResponse {
         description = lesson.getDescription();
         grade = lesson.getGrade();
         subject = lesson.getSubject();
-        price = lesson.getPrice();
+        price = Math.round(lesson.getPrice() * 100.0) / 100.0;
         length = lesson.getLength();
         isDraft = lesson.isDraft();
         studentsUpperBound = lesson.getStudentsUpperBound();
-        rating = lesson.getRating();
+        rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
         courseTerminResponses = new ArrayList<>();
@@ -119,7 +119,7 @@ public class LessonResponse {
                 courseTermin1 = courseTermin;
             }
             String[] days = courseTermin1.getCourseDays().split(",");
-            pricePerHour = lesson.getPrice() / (days.length * weekLength);
+            pricePerHour = Math.round(lesson.getPrice() / (days.length * weekLength) * 100.0) / 100.0;
         }
         reviewResponses = reviews;
         Teacher teacher = lesson.getTeacher();
@@ -134,11 +134,11 @@ public class LessonResponse {
         description = lesson.getDescription();
         grade = lesson.getGrade();
         subject = lesson.getSubject();
-        price = lesson.getPrice();
+        price = Math.round(lesson.getPrice() * 100.0) / 100.0;
         length = lesson.getLength();
         isDraft = lesson.isDraft();
         studentsUpperBound = lesson.getStudentsUpperBound();
-        rating = lesson.getRating();
+        rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
         lessonTerminResponses = termins;

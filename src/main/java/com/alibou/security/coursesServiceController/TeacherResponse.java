@@ -33,7 +33,7 @@ public class TeacherResponse {
     public TeacherResponse(Teacher teacher) {
         this.id = teacher.getId();
         this.numberOfReviews = teacher.getNumberOfReviews();
-        this.rating = teacher.getRating();
+        this.rating = Math.round(teacher.getRating() * 100.0) / 100.0;
         this.specialties = teacher.getSpecialties();
         this.firstName = teacher.getFirstname();
         this.secondName = teacher.getLastname();
@@ -45,7 +45,7 @@ public class TeacherResponse {
     public TeacherResponse(Teacher teacher, List<ReviewResponse> reviewResponses) throws CustomException {
         this.id = teacher.getId();
         this.numberOfReviews = teacher.getNumberOfReviews();
-        this.rating = teacher.getRating();
+        this.rating = Math.round(teacher.getRating() * 100.0) / 100.0;
         this.specialties = teacher.getSpecialties();
         this.description = teacher.getDescription();
         this.firstName = teacher.getFirstname();

@@ -95,6 +95,10 @@ public class Lesson {
         hasTermins = false;
     }
 
+    public void addToIsLiked(Student student) {
+        isLikedByStudent.add(student);
+    }
+
     public void removeFromIsLiked(Student student) {
         isLikedByStudent.remove(student);
     }
