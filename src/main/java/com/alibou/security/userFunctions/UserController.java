@@ -166,9 +166,9 @@ public class UserController {
         return ResponseEntity.ok(userService.getUser(httpServletRequest));
     }
 
-    @GetMapping("/getLikedTeachers")
-    public ResponseEntity<Object> getLikedTeachers(HttpServletRequest httpServletRequest) {
-        return ResponseEntity.ok(userService.getFavouriteTeachers(httpServletRequest.getHeader("Authorization")));
+    @GetMapping("/getLikedTeachers/{page}")
+    public ResponseEntity<Object> getLikedTeachers(HttpServletRequest httpServletRequest, @PathVariable int page) {
+        return ResponseEntity.ok(userService.getFavouriteTeachers(httpServletRequest.getHeader("Authorization"), page));
     }
 
     @GetMapping("/dislikeTeacher/{id}")

@@ -1,9 +1,6 @@
 package com.alibou.security.userFunctions;
 
-import com.alibou.security.coursesServiceController.ExperienceRequest;
-import com.alibou.security.coursesServiceController.ReviewResponse;
-import com.alibou.security.coursesServiceController.TeacherResponse;
-import com.alibou.security.coursesServiceController.TimePair;
+import com.alibou.security.coursesServiceController.*;
 import com.alibou.security.emailing.EmailDetails;
 import com.alibou.security.emailing.EmailService;
 import com.alibou.security.exceptionHandling.CustomException;
@@ -246,14 +243,22 @@ public class UserService {
         return null;
     }
 
-    public List<TeacherResponse> getFavouriteTeachers(String token) {
+    public PagedResponse getFavouriteTeachers(String token, int page) {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<TeacherResponse> teacherResponses = new ArrayList<>();
-        for (Teacher teacher : student.getFavouriteTeachers()) {
-            TeacherResponse teacherResponse = TeacherResponse.builder().id(teacher.getId()).firstName(teacher.getFirstname())
-                    .secondName(teacher.getLastname()).numberOfReviews(teacher.getNumberOfReviews()).rating(teacher.getRating()).build();
-            teacherResponses.add(teacherResponse);
+        List<Teacher> teachers = student.getFavouriteTeachers();
+        int elementCounter = 0;
+        for (Teacher teacher : teachers) {
+            if (elementCounter >= page * 12) {
+                break;
+            }
+            if (elementCounter >= page * 12 - 12) {
+                TeacherResponse teacherResponse = TeacherResponse.builder().id(teacher.getId()).firstName(teacher.getFirstname())
+                        .secondName(teacher.getLastname()).numberOfReviews(teacher.getNumberOfReviews()).rating(teacher.getRating()).build();
+                teacherResponses.add(teacherResponse);
+            }
+            elementCounter++;
         }
-        return teacherResponses;
+        return new PagedResponse(teachers.size(), 12, teacherResponses);
     }
 }

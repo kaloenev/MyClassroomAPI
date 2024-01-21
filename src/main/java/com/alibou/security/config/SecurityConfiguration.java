@@ -57,12 +57,13 @@ public class SecurityConfiguration {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class)
+    http
+//            .addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class)
             .csrf()
             .disable()
-//            .cors(cors -> {
-//              cors.configurationSource(corsConfigurationSource());
-//            })
+            .cors(cors -> {
+              cors.configurationSource(corsConfigurationSource());
+            })
             .authorizeHttpRequests()
             .requestMatchers(
                     "/api/v1/auth/**",
@@ -131,22 +132,22 @@ public class SecurityConfiguration {
 //            .allowCredentials(true);
 //  }
 
-//  @Bean
-//  public CorsConfigurationSource corsConfigurationSource() {
-//    CorsConfiguration configuration = new CorsConfiguration();
-//    configuration.addAllowedOrigin("http://localhost:3002");
-//    configuration.addAllowedOrigin("http://localhost:3000");
-//    configuration.addAllowedOrigin("https://frontend-test-coei.vercel.app/");
-//    configuration.addAllowedOrigin("https://frontend-test-coei-kaloyans-projects-3ca58d7b.vercel.app/");
-//    configuration.addAllowedOrigin("https://frontend-test-coei-git-develop-kaloyans-projects-3ca58d7b.vercel.app/");
-//    configuration.addAllowedMethod("*");
-//    configuration.addAllowedHeader("*");
-//    configuration.setAllowCredentials(true);
-//    UrlBasedCorsConfigurationSource source = new
-//            UrlBasedCorsConfigurationSource();
-//    source.registerCorsConfiguration("/**", configuration);
-//    return source;
-//  }
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.addAllowedOrigin("http://localhost:3002");
+    configuration.addAllowedOrigin("http://localhost:3000");
+    configuration.addAllowedOrigin("https://frontend-test-coei.vercel.app/");
+    configuration.addAllowedOrigin("https://frontend-test-coei-kaloyans-projects-3ca58d7b.vercel.app/");
+    configuration.addAllowedOrigin("https://frontend-test-coei-git-develop-kaloyans-projects-3ca58d7b.vercel.app/");
+    configuration.addAllowedMethod("*");
+    configuration.addAllowedHeader("*");
+    configuration.setAllowCredentials(true);
+    UrlBasedCorsConfigurationSource source = new
+            UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
 
 //  @Bean
 //  CorsWebFilter corsFilter() {

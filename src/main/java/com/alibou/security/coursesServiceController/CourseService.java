@@ -878,97 +878,150 @@ public class CourseService {
         return classroomPageResponse;
     }
 
-    public List<LessonResponse> getStudentAll(String token, LessonRequest lessonRequest, String sort) throws ClassCastException, CustomException {
-        //TODO add paging? or make default lessonstatus to active
+    public PagedResponse getStudentAll(String token, LessonRequest lessonRequest, String sort) throws ClassCastException, CustomException {
+        //TODO maybe find better implementation
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-//        if (lessonRequest.getSort() == null || lessonRequest.getSort() == "") {
-//
-//        }
+        LessonStatus lessonStatus;
+        if (Objects.equals(lessonRequest.getSort(), "Upcoming")) lessonStatus = LessonStatus.NOT_STARTED;
+        else if (Objects.equals(lessonRequest.getSort(), "Active")) lessonStatus = LessonStatus.STARTED;
+        else lessonStatus = LessonStatus.FINISHED;
 
-        if (sort.equals("Lessons")) return getStudentPrivateLessons(lessonRequest, student);
-        else if (sort.equals("Courses")) return getStudentCourses(lessonRequest, student);
+        if (sort.equals("Lessons")) return getStudentPrivateLessons(lessonRequest, student, lessonStatus);
+        else if (sort.equals("Courses")) return getStudentCourses(lessonRequest, student, lessonStatus);
 
         List<LessonResponse> lessonResponses = new ArrayList<>();
-        List<LessonTermin> lessonTermins = student.getPrivateLessons();
-        int counter = 0;
+        List<LessonTermin> lessonTermins;
+        List<CourseTermin> courseTermins;
+        if (lessonRequest.getSort() == null || Objects.equals(lessonRequest.getSort(), "")
+                || Objects.equals(lessonRequest.getSort(), "All")) {
+            lessonTermins = student.getPrivateLessons();
+            courseTermins = student.getCourses();
+        } else {
+            lessonTermins = lessonTerminRepo.getLessonTerminsByStudent_IdAndLessonStatus(student.getId(), lessonStatus);
+            courseTermins = courseTerminRepo.getCourseTerminsByEnrolledStudents_idAndLessonStatus(student.getId(), lessonStatus);
+        }
+        int lessonTerminCounter = 0;
         int lessonsLength = lessonTermins.size() - 1;
-        for (CourseTermin courseTermin : student.getCourses()) {
+        int elementCounter = 0;
+        boolean nextCourseTermin = true;
+        CourseTermin courseTermin = null;
+        for (Iterator<CourseTermin> iterator = courseTermins.iterator(); iterator.hasNext()
+                && elementCounter < lessonRequest.getPage() * 12; ) {
+
+            if (nextCourseTermin) {
+                courseTermin = iterator.next();
+            }
+            nextCourseTermin = true;
             LessonResponse lessonResponse;
-            if (counter > lessonsLength) {
-                if (!courseTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
-                CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
-                Lesson lesson = courseTermin.getLesson();
-                Teacher teacher = lesson.getTeacher();
-                lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
-                lessonResponse.setLength(lesson.getLength());
-                lessonResponses.add(lessonResponse);
+            if (lessonTerminCounter > lessonsLength) {
+                if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
+                    CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
+                    Lesson lesson = courseTermin.getLesson();
+                    Teacher teacher = lesson.getTeacher();
+                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                            teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
+                    lessonResponse.setLength(lesson.getLength());
+                    lessonResponses.add(lessonResponse);
+                }
                 continue;
             }
-            LessonTermin lessonTermin = lessonTermins.get(counter);
+            LessonTermin lessonTermin = lessonTermins.get(lessonTerminCounter);
             if (courseTermin.getDateTime().before(lessonTermin.getDateTime())) {
-                if (!courseTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
-                CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
-                Lesson lesson = courseTermin.getLesson();
-                Teacher teacher = lesson.getTeacher();
-                lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
-                lessonResponse.setLength(lesson.getLength());
+                if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
+                    CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
+                    Lesson lesson = courseTermin.getLesson();
+                    Teacher teacher = lesson.getTeacher();
+                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                            teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
+                    lessonResponse.setLength(lesson.getLength());
+                    lessonResponses.add(lessonResponse);
+                }
             } else {
-                if (!lessonTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
+                if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
+                    Lesson lesson = lessonTermin.getLesson();
+                    Teacher teacher = lesson.getTeacher();
+                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                            teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
+                            lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
+                    lessonTerminCounter++;
+                    lessonResponse.setLength(lesson.getLength());
+                    lessonResponses.add(lessonResponse);
+                }
+                nextCourseTermin = false;
+            }
+            elementCounter++;
+        }
+        while (lessonTerminCounter <= lessonsLength && elementCounter < lessonRequest.getPage() * 12) {
+            if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
+                LessonResponse lessonResponse;
+                LessonTermin lessonTermin = lessonTermins.get(lessonTerminCounter);
                 Lesson lesson = lessonTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                         lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
-                counter++;
                 lessonResponse.setLength(lesson.getLength());
+                lessonResponses.add(lessonResponse);
             }
-            lessonResponses.add(lessonResponse);
+            lessonTerminCounter++;
+            elementCounter++;
         }
-        while (counter <= lessonsLength) {
-            LessonResponse lessonResponse;
-            LessonTermin lessonTermin = lessonTermins.get(counter);
-            if (!lessonTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
-            Lesson lesson = lessonTermin.getLesson();
-            Teacher teacher = lesson.getTeacher();
-            lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                    teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
-                    lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
-            lessonResponse.setLength(lesson.getLength());
-            lessonResponses.add(lessonResponse);
-            counter++;
-        }
-        return lessonResponses;
+        return new PagedResponse((long) lessonTermins.size() + courseTermins.size(), 12, lessonResponses, null);
     }
 
-    private List<LessonResponse> getStudentPrivateLessons(LessonRequest lessonRequest, Student student) {
+    private PagedResponse getStudentPrivateLessons(LessonRequest lessonRequest, Student student, LessonStatus lessonStatus) {
         List<LessonResponse> lessonResponses = new ArrayList<>();
-        for (LessonTermin lessonTermin : student.getPrivateLessons()) {
-            if (!lessonTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
-            Lesson lesson = lessonTermin.getLesson();
-            Teacher teacher = lesson.getTeacher();
-            LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                    teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
-                    lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
-
-            lessonResponses.add(lessonResponse);
+        int elementCounter = 0;
+        List<LessonTermin> lessonTermins;
+        if (lessonRequest.getSort() == null || Objects.equals(lessonRequest.getSort(), "")
+                || Objects.equals(lessonRequest.getSort(), "All")) {
+            lessonTermins = student.getPrivateLessons();
+        } else {
+            lessonTermins = lessonTerminRepo.getLessonTerminsByStudent_IdAndLessonStatus(student.getId(), lessonStatus);
         }
-        return lessonResponses;
+        for (LessonTermin lessonTermin : lessonTermins) {
+            if (elementCounter >= lessonRequest.getPage() * 12) {
+                break;
+            }
+            if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
+                Lesson lesson = lessonTermin.getLesson();
+                Teacher teacher = lesson.getTeacher();
+                LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                        teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
+                        lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
+
+                lessonResponses.add(lessonResponse);
+            }
+            elementCounter++;
+        }
+        return new PagedResponse(lessonTermins.size(), 12, lessonResponses, null);
     }
 
-    private List<LessonResponse> getStudentCourses(LessonRequest lessonRequest, Student student) {
+    private PagedResponse getStudentCourses(LessonRequest lessonRequest, Student student, LessonStatus lessonStatus) {
         List<LessonResponse> lessonResponses = new ArrayList<>();
-        for (CourseTermin courseTermin : student.getCourses()) {
-            if (!courseTermin.getLessonStatus().toString().equals(lessonRequest.getSort())) continue;
-            CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
-            Lesson lesson = courseTermin.getLesson();
-            Teacher teacher = lesson.getTeacher();
-            LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                    teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
-            lessonResponses.add(lessonResponse);
+        List<CourseTermin> courseTermins;
+        int elementCounter = 0;
+        if (lessonRequest.getSort() == null || Objects.equals(lessonRequest.getSort(), "")
+                || Objects.equals(lessonRequest.getSort(), "All")) {
+            courseTermins = student.getCourses();
+        } else {
+            courseTermins = courseTerminRepo.getCourseTerminsByEnrolledStudents_idAndLessonStatus(student.getId(), lessonStatus);
         }
-        return lessonResponses;
+        for (CourseTermin courseTermin : courseTermins) {
+            if (elementCounter >= lessonRequest.getPage() * 12) {
+                break;
+            }
+            if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
+                CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
+                Lesson lesson = courseTermin.getLesson();
+                Teacher teacher = lesson.getTeacher();
+                LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
+                lessonResponses.add(lessonResponse);
+            }
+            elementCounter++;
+        }
+        return new PagedResponse(courseTermins.size(), 12, lessonResponses, null);
     }
 
     public PagedResponse getFavouriteCourses(String token, String sort, int pageNumber) throws ClassCastException, CustomException {

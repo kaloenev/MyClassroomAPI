@@ -12,6 +12,10 @@ import java.util.List;
 public interface LessonTerminRepo extends JpaRepository<LessonTermin, Integer> {
     LessonTermin getLessonTerminByTerminID(int id);
 
+    @Query("select l from LessonTermin l where l.student.id = :studentId and l.lessonStatus = :lessonStatus")
+    List<LessonTermin> getLessonTerminsByStudent_IdAndLessonStatus(@Param("studentId") int studentId,
+                                                                   @Param("lessonStatus") LessonStatus lessonStatus);
+
     @Query("select l from LessonTermin l where l.lesson.lessonID = :lessonId")
     List<LessonTermin> getLessonTerminsByLessonID(@Param("lessonId") int lessonId);
 
