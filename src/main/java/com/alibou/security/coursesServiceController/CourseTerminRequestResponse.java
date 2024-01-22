@@ -65,6 +65,6 @@ public class CourseTerminRequestResponse {
         studentsUpperBound = courseTermin.getStudentsUpperBound();
         numberOfStudents = studentsUpperBound - courseTermin.getPlacesRemaining();
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
-        this.lessonStatus = lessonStatus.toString();
+        this.lessonStatus = lessonStatus.name();
     }
 }

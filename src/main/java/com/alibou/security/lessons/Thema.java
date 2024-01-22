@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 @Getter
 @Setter
 @ToString
@@ -32,4 +34,8 @@ public class Thema {
 
     @OneToOne(mappedBy = "thema", cascade = CascadeType.ALL)
     private LessonTermin lessonTermin;
+
+    @OneToOne(mappedBy = "thema")
+    @ToString.Exclude
+    protected Assignment assignment;
 }

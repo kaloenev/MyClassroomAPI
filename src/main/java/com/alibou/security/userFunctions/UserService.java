@@ -4,6 +4,7 @@ import com.alibou.security.coursesServiceController.*;
 import com.alibou.security.emailing.EmailDetails;
 import com.alibou.security.emailing.EmailService;
 import com.alibou.security.exceptionHandling.CustomException;
+import com.alibou.security.lessons.Lesson;
 import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -193,14 +194,26 @@ public class UserService {
         return new VerificationFormResponse(City.values(), Degree.values());
     }
 
-    public TeacherResponse getTeacherPage(int teacherID) throws CustomException {
+    public TeacherResponse getTeacherPage(int teacherID, String token) throws CustomException {
         Teacher teacher = (Teacher) userRepository.findUserById(teacherID);
         List<ReviewResponse> reviewResponses = new ArrayList<>();
         for (Review review : teacher.getReviews()) {
             ReviewResponse reviewResponse = new ReviewResponse(review);
             reviewResponses.add(reviewResponse);
         }
-        return new TeacherResponse(teacher, reviewResponses);
+        TeacherResponse teacherResponse = new TeacherResponse(teacher, reviewResponses);
+        List<Teacher> likedTeachers = new ArrayList<>();
+        if (token != null) {
+            Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+            likedTeachers = student.getFavouriteTeachers();
+        }
+        for (Teacher teacher1 : likedTeachers) {
+            if (teacher1.getId() == teacherID) {
+                teacherResponse.setLikedByStudent(true);
+                break;
+            }
+        }
+        return teacherResponse;
     }
 
     public UserResponse getUser(HttpServletRequest httpServletRequest) {
@@ -249,16 +262,17 @@ public class UserService {
         List<Teacher> teachers = student.getFavouriteTeachers();
         int elementCounter = 0;
         for (Teacher teacher : teachers) {
-            if (elementCounter >= page * 12) {
+            if (elementCounter >= page * 6) {
                 break;
             }
-            if (elementCounter >= page * 12 - 12) {
+            if (elementCounter >= page * 6 - 6) {
                 TeacherResponse teacherResponse = TeacherResponse.builder().id(teacher.getId()).firstName(teacher.getFirstname())
-                        .secondName(teacher.getLastname()).numberOfReviews(teacher.getNumberOfReviews()).rating(teacher.getRating()).build();
+                        .secondName(teacher.getLastname()).numberOfReviews(teacher.getNumberOfReviews()).rating(teacher.getRating())
+                        .specialties(teacher.getSpecialties()).build();
                 teacherResponses.add(teacherResponse);
             }
             elementCounter++;
         }
-        return new PagedResponse(teachers.size(), 12, teacherResponses);
+        return new PagedResponse(teachers.size(), 6, teacherResponses);
     }
 }

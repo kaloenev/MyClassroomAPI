@@ -139,9 +139,9 @@ public class CourseController {
     }
 
     @GetMapping("/getHomePage")
-    public ResponseEntity<Object> getHomePage() {
+    public ResponseEntity<Object> getHomePage(HttpServletRequest httpRequest) {
         try {
-            return ResponseEntity.ok(courseService.getHomePageInfo());
+            return ResponseEntity.ok(courseService.getHomePageInfo(httpRequest.getHeader("Authorization")));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -149,9 +149,9 @@ public class CourseController {
     }
 
     @PostMapping("/getFilteredClasses")
-    public ResponseEntity<Object> getFilteredCourses(@RequestBody FilterRequest filterRequest) {
+    public ResponseEntity<Object> getFilteredCourses(@RequestBody FilterRequest filterRequest, HttpServletRequest httpRequest) {
         try {
-            return ResponseEntity.ok(courseService.getFilteredLessons(filterRequest));
+            return ResponseEntity.ok(courseService.getFilteredLessons(filterRequest, httpRequest.getHeader("Authorization")));
         } catch (IllegalArgumentException | CustomException e) {
         CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
         return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -316,8 +316,9 @@ public class CourseController {
     }
 
     @PostMapping("/uploadAssignmentFiles/{id}")
-    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
+    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file[]") MultipartFile[] requestFiles,
                                               HttpServletRequest httpRequest) {
+        System.out.println("Reached controller");
         //TODO Check if the person is using this only for a new Assignment (more than 4 files risk)
         if (requestFiles.length > 4) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
@@ -338,6 +339,7 @@ public class CourseController {
             }
             pathBuilder.append(newFile).append(",");
         }
+        System.out.println("Saved files");
         if (pathBuilder.isEmpty()) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -587,9 +589,9 @@ public class CourseController {
     }
 
     @GetMapping("/getCoursePage/{id}")
-    public ResponseEntity<Object> getCoursePage(@PathVariable int id) {
+    public ResponseEntity<Object> getCoursePage(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
-            return ResponseEntity.ok(courseService.getLessonById(id));
+            return ResponseEntity.ok(courseService.getLessonById(id, httpRequest.getHeader("Authorization")));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

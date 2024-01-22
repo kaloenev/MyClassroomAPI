@@ -150,9 +150,9 @@ public class UserController {
     }
 
     @GetMapping("/getTeacherProfile/{id}")
-    public ResponseEntity<Object> getTeacherProfile(@PathVariable int id) {
+    public ResponseEntity<Object> getTeacherProfile(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
-            return ResponseEntity.ok(userService.getTeacherPage(id));
+            return ResponseEntity.ok(userService.getTeacherPage(id, httpRequest.getHeader("Authorization")));
         }
         catch (CustomException e) {
             e.printStackTrace();

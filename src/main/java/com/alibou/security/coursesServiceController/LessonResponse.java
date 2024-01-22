@@ -62,6 +62,8 @@ public class LessonResponse {
 
     private boolean isDraft;
 
+    private boolean isLikedByStudent;
+
 
 
     public LessonResponse(Lesson lesson, String dateTime, String time, int numberOfStudents) {

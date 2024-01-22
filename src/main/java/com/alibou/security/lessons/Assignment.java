@@ -27,11 +27,10 @@ public class Assignment {
     private Timestamp dueDateTime;
     private String assignmentLocation;
 
-    //TODO Change assignments to be for each thema not termin
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "thema_id")
     @ToString.Exclude
-    private Termin lesson;
+    private Thema thema;
 
     @OneToMany(mappedBy = "assignment")
     @ToString.Exclude

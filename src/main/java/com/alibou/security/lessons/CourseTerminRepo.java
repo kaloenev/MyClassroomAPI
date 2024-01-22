@@ -26,7 +26,7 @@ public interface CourseTerminRepo extends JpaRepository<CourseTermin, Integer> {
 
 
     @Query("""
-            select distinct c.lesson from CourseTermin c
+            select c.lesson from CourseTermin c
                 where ((:searchTerm is null or c.lesson.title = :searchTerm)
                 or (:searchTerm2 is null or c.lesson.teacher.firstname = :searchTerm2)
                 or (:searchTerm3 is null or c.lesson.teacher.lastname = :searchTerm3))

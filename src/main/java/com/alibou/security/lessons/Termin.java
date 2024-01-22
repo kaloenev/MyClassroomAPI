@@ -35,10 +35,6 @@ public class Termin {
     @ToString.Exclude
     protected Lesson lesson;
 
-    @OneToMany(mappedBy = "lesson")
-    @ToString.Exclude
-    protected List<Assignment> assignments;
-
     public String getTime() {
         return dateTime.toString().substring(11, 16);
     }

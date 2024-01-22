@@ -26,6 +26,8 @@ public class TeacherResponse {
     private String secondName;
     private String description;
     private String experience;
+
+    private boolean isLikedByStudent;
     private List<ReviewResponse> reviews;
 
     private List<LessonResponse> lessonResponses;

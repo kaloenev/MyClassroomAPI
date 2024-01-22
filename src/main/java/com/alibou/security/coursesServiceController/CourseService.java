@@ -450,12 +450,17 @@ public class CourseService {
         terminRepo.deleteById(terminID);
     }
 
-    public HomePageResponse getHomePageInfo() throws CustomException {
+    public HomePageResponse getHomePageInfo(String token) throws CustomException {
         // TODO Maybe find fix for drafts not to be shown
         List<Lesson> lessons = lessonRepository.findTop12ByOrderByPopularityDesc();
         // Add file reader and links to the courses
         HomePageResponse homePageResponse = new HomePageResponse();
 
+        List<Lesson> likedLessons = new ArrayList<>();
+        if (token != null) {
+            Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+            likedLessons = student.getFavouriteLessons();
+        }
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
             if (lesson.isDraft()) continue;
@@ -469,12 +474,19 @@ public class CourseService {
                 int weekLength = lesson.getCourseTermins().get(0).getWeekLength();
                 String[] days = termins.get(0).getCourseDays().split(",");
                 lessonResponse.setWeekLength(weekLength);
-                lessonResponse.setPricePerHour(lesson.getPrice() / (days.length * weekLength));
+                lessonResponse.setPricePerHour(Math.round(lesson.getPrice() / (days.length * weekLength) * 100.0) / 100.0);
             } else {
                 termins2 = lesson.getLessonTermins();
                 lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
-                lessonResponse.setPricePerHour(lesson.getPrice());
+                lessonResponse.setPricePerHour(Math.round(lesson.getPrice() * 100.0) / 100.0);
             }
+            for (Lesson lesson1 : likedLessons) {
+                if (Objects.equals(lesson1.getLessonID(), lesson.getLessonID())) {
+                    lessonResponse.setLikedByStudent(true);
+                    break;
+                }
+            }
+            lessonResponses.add(lessonResponse);
             lessonResponses.add(lessonResponse);
         }
 
@@ -542,16 +554,16 @@ public class CourseService {
         return filterResponse;
     }
 
-    public PagedResponse getFilteredLessons(FilterRequest request) throws IllegalArgumentException, CustomException {
+    public PagedResponse getFilteredLessons(FilterRequest request, String token) throws IllegalArgumentException, CustomException {
         List<LessonResponse> lessonResponses = new ArrayList<>();
-        Pageable sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12);
+        Pageable sortedAndPaged;
         String sort = request.getSort();
         if (sort == null) sort = "";
         switch (sort) {
-            case "Lowest price" -> sort = "c.lesson.price";
-            case "Highest rating" -> sort = "c.lesson.rating";
-            case "Starting soonest" -> sort = "c.dateTime";
-            default -> sort = "c.lesson.popularity";
+            case "Lowest price" -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.price").descending());
+            case "Highest rating" -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.rating").descending());
+            case "Starting soonest" -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("dateTime").ascending());
+            default -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.popularity").descending());
         }
         if (request.getPriceLowerBound() >= 0 && request.getPriceUpperBound() == 0) {
             request.setPriceUpperBound(10000);
@@ -619,6 +631,12 @@ public class CourseService {
             }
             weekLength = 0;
         }
+
+        List<Lesson> likedLessons = new ArrayList<>();
+        if (token != null) {
+            Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+            likedLessons = student.getFavouriteLessons();
+        }
         for (Lesson lesson : lessons) {
             List<CourseTermin> termins;
             List<LessonTermin> termins2;
@@ -631,22 +649,33 @@ public class CourseService {
                 int weekLength1 = lesson.getCourseTermins().get(0).getWeekLength();
                 String[] days = termins.get(0).getCourseDays().split(",");
                 lessonResponse.setWeekLength(weekLength1);
-                lessonResponse.setPricePerHour(lesson.getPrice() / (days.length * weekLength1));
+                lessonResponse.setPricePerHour(Math.round(lesson.getPrice() / (days.length * weekLength1) * 100.0) / 100.0);
             } else {
                 termins2 = lesson.getLessonTermins();
                 lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
-                lessonResponse.setPricePerHour(lesson.getPrice());
+                lessonResponse.setPricePerHour(Math.round(lesson.getPrice() * 100.0) / 100.0);
+            }
+            for (Lesson lesson1 : likedLessons) {
+                if (Objects.equals(lesson1.getLessonID(), lesson.getLessonID())) {
+                    lessonResponse.setLikedByStudent(true);
+                    break;
+                }
             }
             lessonResponses.add(lessonResponse);
         }
         return new PagedResponse(lessons.getTotalElements(), 12, lessonResponses, null);
     }
 
-    public List<LessonResponse> getLessonById(int id) throws CustomException {
+    public List<LessonResponse> getLessonById(int id, String token) throws CustomException {
 //TODO do lesson page for logged user   Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         var lesson = lessonRepository.getLessonByLessonID(id);
         LessonResponse lessonResponse;
         PagedResponse reviews = getLessonReviews(id, "", 1);
+        List<Lesson> likedLessons = new ArrayList<>();
+        if (token != null) {
+            Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+            likedLessons = student.getFavouriteLessons();
+        }
         if (lesson.isPrivateLesson()) {
             List<LessonTermin> lessonTermins = lesson.getLessonTermins();
             List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
@@ -658,9 +687,12 @@ public class CourseService {
                         lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)));
             }
             lessonResponse = new LessonResponse(lesson, lessonTerminResponses, reviews.getReviewResponses(), thema);
-            lessonResponse.setPricePerHour(lessonResponse.getPrice());
+            lessonResponse.setPricePerHour(Math.round(lessonResponse.getPrice() * 100.0) / 100.0);
         } else {
             lessonResponse = new LessonResponse(lesson, reviews.getReviewResponses());
+        }
+        for (Lesson lesson2 : likedLessons) {
+            if (Objects.equals(lesson2.getLessonID(), lesson.getLessonID())) lessonResponse.setLikedByStudent(true);
         }
         List<LessonResponse> lessonResponses = new ArrayList<>();
         lessonResponses.add(lessonResponse);
@@ -675,6 +707,13 @@ public class CourseService {
                         courseTermins.get(0).getStudentsUpperBound() - courseTermins.get(0).getPlacesRemaining()));
                 lessonResponse.setWeekLength(courseTermins.get(0).getWeekLength());
             }
+            for (Lesson lesson2 : likedLessons) {
+                if (Objects.equals(lesson2.getLessonID(), lesson1.getLessonID())) {
+                    lessonResponse.setLikedByStudent(true);
+                    break;
+                }
+            }
+            lessonResponses.add(lessonResponse);
         }
         return lessonResponses;
     }
@@ -752,7 +791,7 @@ public class CourseService {
                 lessonResponse = new LessonResponse(lesson, null, null, thema);
                 lessonResponse.setTeacherResponse(null);
             }
-            lessonResponse.setPricePerHour(lessonResponse.getPrice());
+            lessonResponse.setPricePerHour(Math.round(lessonResponse.getPrice() * 100.0) / 100.0);
         } else {
             lessonResponse = new LessonResponse(lesson, null);
             lessonResponse.setTeacherResponse(null);
@@ -809,8 +848,10 @@ public class CourseService {
                     throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
             }
             Thema thema = lessonTermin.getThema();
+            Assignment assignment = thema.getAssignment();
             ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
-                    thema.getPresentation(), thema.getTitle(), thema.getDescription());
+                    thema.getPresentation(), assignment.getAssignmentID(), assignment.getStudents().size(), assignment.getSolutions().size(),
+                    thema.getTitle(), thema.getDescription());
             themas.add(themaResponse);
             String teacherName = null;
             if (isTeacher) {
@@ -855,8 +896,10 @@ public class CourseService {
                 teacherName = teacher.getFirstname() + " " + teacher.getLastname();
             }
             for (Thema thema : courseTermin.getThemas()) {
+                Assignment assignment = thema.getAssignment();
                 ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
-                        thema.getPresentation(), thema.getTitle(), thema.getDescription());
+                        thema.getPresentation(), assignment.getAssignmentID(), assignment.getStudents().size(), assignment.getSolutions().size(),
+                        thema.getTitle(), thema.getDescription());
                 themas.add(themaResponse);
             }
             String endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
@@ -1031,20 +1074,20 @@ public class CourseService {
         boolean sortByCourse = false;
         switch (sort) {
             case "Most popular" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("popularity").descending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("popularity").descending());
             case "Most expensive" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("price").descending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("price").descending());
             case "Cheapest" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("price").ascending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("price").ascending());
             case "Highest rating" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("rating").descending());
 //            case "Starting soonest" -> {
-//                sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
+//                sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("dateTime").ascending());
 //                sortByCourse = true;
 //            }
             case "Newest" -> {
                 List<Lesson> lessons = student.getFavouriteLessons();
-                for (int i = (pageNumber - 1) * 12; i < pageNumber * 12; i++) {
+                for (int i = (pageNumber - 1) * 8; i < pageNumber * 8 && i < lessons.size(); i++) {
                     Lesson lesson = lessons.get(i);
                     List<CourseTermin> termins;
                     List<LessonTermin> termins2;
@@ -1060,10 +1103,10 @@ public class CourseService {
                     }
                     lessonResponses.add(lessonResponse);
                 }
-                return new PagedResponse(lessons.size(), 12, lessonResponses, null);
+                return new PagedResponse(lessons.size(), 8, lessonResponses, null);
             }
             default -> {
-                sortedAndPaged = PageRequest.of(pageNumber - 1, 12);
+                sortedAndPaged = PageRequest.of(pageNumber - 1, 8);
                 sortByCourse = true;
             }
         }
@@ -1088,7 +1131,7 @@ public class CourseService {
                 }
                 lessonResponses.add(lessonResponse);
             }
-        return new PagedResponse(lessons.getTotalElements(), 12 ,lessonResponses, null);
+        return new PagedResponse(lessons.getTotalElements(), 8 ,lessonResponses, null);
     }
 
     public List<LessonResponse> getTeacherLessons(String token, String lessonStatus, boolean privateLessons, boolean upcoming) throws ClassCastException, CustomException {
@@ -1258,7 +1301,8 @@ public class CourseService {
     }
 
     public List<CourseTerminRequestResponse> getCourseTerminsTeacher(String token, int lessonId) throws CustomException {
-        // TODO add to teacher exclusive functions
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         List<CourseTermin> courseTermins = courseTerminRepo.getCourseTerminsByLessonID(lessonId);
         List<CourseTerminRequestResponse> courseTerminRequestResponses = new ArrayList<>();
         for (CourseTermin courseTermin : courseTermins) {
@@ -1269,7 +1313,8 @@ public class CourseService {
     }
 
     public List<LessonTerminResponse> getLessonTerminsTeacher(String token, int lessonId) throws ClassCastException, CustomException {
-        // TODO add to teacher exclusive functions
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         List<LessonTermin> lessonTermins = lessonTerminRepo.getLessonTerminsByLessonID(lessonId);
         List<LessonTerminResponse> lessonResponses = new ArrayList<>();
         int dayOfMonth = -1;
@@ -1323,7 +1368,7 @@ public class CourseService {
             students = courseTermin.getEnrolledStudents();
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).lesson(courseTermin).students(new ArrayList<>()).build();
+                            + " " + assignmentRequest.getTime() + ":00")).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             courseTerminRepo.save(courseTermin);
         }
@@ -1332,7 +1377,7 @@ public class CourseService {
             students.add(lessonTermin.getStudent());
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).lesson(lessonTermin).students(new ArrayList<>()).build();
+                            + " " + assignmentRequest.getTime() + ":00")).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             lessonTerminRepo.save(lessonTermin);
         }
@@ -1360,6 +1405,7 @@ public class CourseService {
     }
 
     public String uploadAssignmentFiles(String token, int id, String paths) throws CustomException {
+        System.out.println("Reached service");
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
@@ -1378,10 +1424,9 @@ public class CourseService {
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         String[] files = assignment.getAssignmentLocation().split(",");
-        AssignmentResponse assignmentResponse = AssignmentResponse.builder().title(assignment.getTitle())
+        return AssignmentResponse.builder().title(assignment.getTitle())
                 .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
                 .fileNames(files).build();
-        return assignmentResponse;
     }
 
     public void getAssignmentFiles(String token, int id, String requestedFile) throws CustomException {
