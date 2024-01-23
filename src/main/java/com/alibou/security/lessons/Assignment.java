@@ -1,6 +1,7 @@
 package com.alibou.security.lessons;
 
 import com.alibou.security.user.Student;
+import com.alibou.security.user.Teacher;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -39,6 +40,11 @@ public class Assignment {
     @ManyToMany(fetch = FetchType.LAZY)
     @ToString.Exclude
     private List<Student> students;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teacher_id")
+    @ToString.Exclude
+    private Teacher teacher;
 
     public String getTime() {
         return dueDateTime.toString().substring(11, 16);

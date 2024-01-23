@@ -205,7 +205,9 @@ public class UserService {
         List<Teacher> likedTeachers = new ArrayList<>();
         if (token != null) {
             Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-            likedTeachers = student.getFavouriteTeachers();
+            if (student != null) {
+                likedTeachers = student.getFavouriteTeachers();
+            }
         }
         for (Teacher teacher1 : likedTeachers) {
             if (teacher1.getId() == teacherID) {

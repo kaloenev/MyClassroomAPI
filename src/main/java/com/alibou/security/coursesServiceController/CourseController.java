@@ -316,7 +316,7 @@ public class CourseController {
     }
 
     @PostMapping("/uploadAssignmentFiles/{id}")
-    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file[]") MultipartFile[] requestFiles,
+    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
                                               HttpServletRequest httpRequest) {
         System.out.println("Reached controller");
         //TODO Check if the person is using this only for a new Assignment (more than 4 files risk)
@@ -347,6 +347,54 @@ public class CourseController {
         paths = pathBuilder.substring(0, pathBuilder.length() - 1);
         try {
             courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/getAssignmentStudent/{id}")
+    public ResponseEntity<Object> getAssignmentStudent(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getAssignmentStudent(httpRequest.getHeader("Authorization"), id));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @PostMapping("/uploadSolutionFiles/{id}")
+    public ResponseEntity<Object> uploadSolutionFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
+                                                        HttpServletRequest httpRequest) {
+        System.out.println("Reached controller");
+        if (requestFiles.length > 4) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        String paths;
+        StringBuilder pathBuilder = new StringBuilder();
+        for (MultipartFile requestFile : requestFiles) {
+            Path newFile;
+            newFile = Paths.get("Solution" + random.nextInt(Integer.MAX_VALUE) + "_"
+                    + filenameCounter + "_" + requestFile.getOriginalFilename());
+            filenameCounter++;
+            try {
+                Files.copy(requestFile.getInputStream(), newFile);
+            } catch (IOException e) {
+                CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+                return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+            }
+            pathBuilder.append(newFile).append(",");
+        }
+        System.out.println("Saved solution files");
+        if (pathBuilder.isEmpty()) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        paths = pathBuilder.substring(0, pathBuilder.length() - 1);
+        try {
+            courseService.uploadSolutionFiles(httpRequest.getHeader("Authorization"), id, paths);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

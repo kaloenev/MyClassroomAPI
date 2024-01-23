@@ -1,5 +1,6 @@
 package com.alibou.security.user;
 
+import com.alibou.security.lessons.Assignment;
 import com.alibou.security.lessons.Lesson;
 import jakarta.persistence.*;
 import lombok.*;
@@ -48,7 +49,7 @@ public class Teacher extends User {
     @OneToMany(mappedBy = "teacher")
     @ToString.Exclude
     private List<MessageContact> messages;
-
+//TODO make them serializable
     @OneToMany(mappedBy = "teacher")
     @ToString.Exclude
     private List<Review> reviews;
@@ -60,6 +61,10 @@ public class Teacher extends User {
     @OneToMany(mappedBy = "teacher")
     @ToString.Exclude
     private List<Lesson> lessons;
+
+    @OneToMany(mappedBy = "teacher")
+    @ToString.Exclude
+    private List<Assignment> assignments;
 
     public void saveMessage(MessageContact messageContact) {
         messages.remove(messageContact);
@@ -101,6 +106,14 @@ public class Teacher extends User {
 
     public void removeLesson(Lesson lesson) {
         lessons.remove(lesson);
+    }
+
+    public void addAssignment(Assignment assignment) {
+        assignments.add(assignment);
+    }
+
+    public void removeAssignment(Assignment assignment) {
+        assignments.remove(assignment);
     }
 
     public void updateRating(int newRating) {

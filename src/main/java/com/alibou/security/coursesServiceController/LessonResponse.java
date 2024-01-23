@@ -49,9 +49,9 @@ public class LessonResponse {
 
     private List<ReviewResponse> reviewResponses;
 
-    private List<CourseTerminRequestResponse> courseTerminResponses;
+    private List<CourseTerminRequestResponse> courseTerminRequests;
 
-    private List<LessonTerminResponse> lessonTerminResponses;
+    private List<LessonTerminResponse> privateLessonTermins;
 
     private String teacherName;
     private String teacherSurname;
@@ -101,7 +101,7 @@ public class LessonResponse {
         rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
-        courseTerminResponses = new ArrayList<>();
+        courseTerminRequests = new ArrayList<>();
         if (lesson.getThemas() != null) {
             themas = new ArrayList<>();
             for (var thema : lesson.getThemas()) {
@@ -116,7 +116,7 @@ public class LessonResponse {
                 Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
                         + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
                 courseTerminRequestResponse.setTime(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
-                courseTerminResponses.add(courseTerminRequestResponse);
+                courseTerminRequests.add(courseTerminRequestResponse);
                 if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
                 courseTermin1 = courseTermin;
             }
@@ -143,7 +143,7 @@ public class LessonResponse {
         rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
         urlToImage = lesson.getImageLocation();
-        lessonTerminResponses = termins;
+        privateLessonTermins = termins;
         reviewResponses = reviews;
         themas = new ArrayList<>();
         themas.add(themaSimpleResponse);
@@ -154,8 +154,8 @@ public class LessonResponse {
     }
 
     public LessonResponse(int lessonID, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
-        courseTerminResponses = new ArrayList<>();
-        courseTerminResponses.add(courseTerminRequestResponse);
+        courseTerminRequests = new ArrayList<>();
+        courseTerminRequests.add(courseTerminRequestResponse);
         this.lessonID = lessonID;
         this.title = title;
         this.privateLesson = privateLesson;
@@ -166,7 +166,7 @@ public class LessonResponse {
     }
 
     public LessonResponse(int lessonID, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
-        courseTerminResponses = new ArrayList<>();
+        courseTerminRequests = new ArrayList<>();
         this.firstDate = date;
         this.time = time;
         this.lessonID = lessonID;

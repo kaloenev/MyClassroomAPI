@@ -209,6 +209,7 @@ public class CourseService {
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
             }
         } else {
+            lessonRepository.save(lesson);
             Thema thema = null;
             if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
                 if (courseRequest.getThemas()[0].getDescription() == null) {
@@ -427,9 +428,9 @@ public class CourseService {
 
     private void checkForUnallowedChanges(Lesson lesson, CreateCourseRequest courseRequest) throws CustomException {
         boolean violations = courseRequest.getCourseTerminRequests().isEmpty() && lesson.getTermins().isEmpty()
-                || lesson.getTitle().isEmpty() && courseRequest.getTitle().isEmpty()
+                || (lesson.getTitle() == null || lesson.getTitle().isEmpty()) && (courseRequest.getTitle() == null || courseRequest.getTitle().isEmpty())
 //                || !EnumUtils.isValidEnum(Subject.class, lesson.getSubject()) && !EnumUtils.isValidEnum(Subject.class, courseRequest.getSubject())
-                || lesson.getDescription().isEmpty() && courseRequest.getDescription().isEmpty()
+                || (lesson.getDescription() == null || lesson.getDescription().isEmpty()) && (courseRequest.getDescription() == null || courseRequest.getDescription().isEmpty())
 //                || lesson.getImageLocation().isEmpty() && courseRequest.getImageLocation().isEmpty()
                 || lesson.getPrice() == 0 && courseRequest.getPrice() == 0;
         if (violations) throw new CustomException(HttpStatus.BAD_REQUEST, "Please use the interface to send requests");
@@ -459,7 +460,9 @@ public class CourseService {
         List<Lesson> likedLessons = new ArrayList<>();
         if (token != null) {
             Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-            likedLessons = student.getFavouriteLessons();
+            if (student != null) {
+                likedLessons = student.getFavouriteLessons();
+            }
         }
         List<LessonResponse> lessonResponses = new ArrayList<>();
         for (Lesson lesson : lessons) {
@@ -635,7 +638,9 @@ public class CourseService {
         List<Lesson> likedLessons = new ArrayList<>();
         if (token != null) {
             Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-            likedLessons = student.getFavouriteLessons();
+            if (student != null) {
+                likedLessons = student.getFavouriteLessons();
+            }
         }
         for (Lesson lesson : lessons) {
             List<CourseTermin> termins;
@@ -674,7 +679,9 @@ public class CourseService {
         List<Lesson> likedLessons = new ArrayList<>();
         if (token != null) {
             Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-            likedLessons = student.getFavouriteLessons();
+            if (student != null) {
+                likedLessons = student.getFavouriteLessons();
+            }
         }
         if (lesson.isPrivateLesson()) {
             List<LessonTermin> lessonTermins = lesson.getLessonTermins();
@@ -849,9 +856,16 @@ public class CourseService {
             }
             Thema thema = lessonTermin.getThema();
             Assignment assignment = thema.getAssignment();
-            ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
-                    thema.getPresentation(), assignment.getAssignmentID(), assignment.getStudents().size(), assignment.getSolutions().size(),
-                    thema.getTitle(), thema.getDescription());
+            ThemaResponse themaResponse;
+            if (assignment != null) {
+                themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
+                        thema.getPresentation(), assignment.getAssignmentID(), assignment.getStudents().size(), assignment.getSolutions().size(),
+                        thema.getTitle(), thema.getDescription());
+            } else {
+                themaResponse = ThemaResponse.builder().themaID(thema.getThemaID()).linkToRecording(thema.getLinkToRecording())
+                        .presentation(thema.getPresentation()).title(thema.getTitle()).description(thema.getDescription())
+                        .build();
+            }
             themas.add(themaResponse);
             String teacherName = null;
             if (isTeacher) {
@@ -897,9 +911,16 @@ public class CourseService {
             }
             for (Thema thema : courseTermin.getThemas()) {
                 Assignment assignment = thema.getAssignment();
-                ThemaResponse themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
-                        thema.getPresentation(), assignment.getAssignmentID(), assignment.getStudents().size(), assignment.getSolutions().size(),
-                        thema.getTitle(), thema.getDescription());
+                ThemaResponse themaResponse;
+                if (assignment != null) {
+                    themaResponse = new ThemaResponse(thema.getThemaID(), thema.getLinkToRecording(), thema.getLinkToRecording(),
+                            thema.getPresentation(), assignment.getAssignmentID(), assignment.getStudents().size(), assignment.getSolutions().size(),
+                            thema.getTitle(), thema.getDescription());
+                } else {
+                    themaResponse = ThemaResponse.builder().themaID(thema.getThemaID()).linkToRecording(thema.getLinkToRecording())
+                            .presentation(thema.getPresentation()).title(thema.getTitle()).description(thema.getDescription())
+                            .build();
+                }
                 themas.add(themaResponse);
             }
             String endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
@@ -1368,7 +1389,7 @@ public class CourseService {
             students = courseTermin.getEnrolledStudents();
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).thema(thema).students(new ArrayList<>()).build();
+                            + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             courseTerminRepo.save(courseTermin);
         }
@@ -1377,10 +1398,12 @@ public class CourseService {
             students.add(lessonTermin.getStudent());
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).thema(thema).students(new ArrayList<>()).build();
+                            + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             lessonTerminRepo.save(lessonTermin);
         }
+        teacher.addAssignment(assignment);
+        teacherRepository.save(teacher);
         for (Student student : students) {
             student.addAssignment(assignment);
             studentRepository.save(student);
@@ -1429,9 +1452,55 @@ public class CourseService {
                 .fileNames(files).build();
     }
 
+    public AssignmentResponse getAssignmentStudent(String token, int id) throws CustomException {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        if (student == null) {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+        }
+        Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
+        if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
+        List<Solution> solutions = assignment.getSolutions();
+        Solution studentSolution = null;
+        for (Solution solution : solutions) {
+            if ((solution.getName() + solution.getSurname()).equals(student.getFirstname() + student.getLastname())) {
+                studentSolution = solution;
+            }
+        }
+        String[] files = assignment.getAssignmentLocation().split(",");
+        AssignmentResponse assignmentResponse = AssignmentResponse.builder().title(assignment.getTitle())
+                .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
+                .fileNames(files).build();
+        if (studentSolution != null) {
+            assignmentResponse.setSolutionFileNames(studentSolution.getSolutionFilesLocation().split(","));
+            List<AssignmentResponse> comments = new ArrayList<>();
+            for (Comment comment : studentSolution.getComments()) {
+                Teacher teacher = assignment.getTeacher();
+                comments.add(AssignmentResponse.builder().comment(comment.getActualComment())
+                        .date(comment.getDate()).time(comment.getTime()).id(comment.getCommentID())
+                        .teacherName(teacher.getFirstname() + " " + teacher.getLastname()).build());
+            }
+            assignmentResponse.setComments(comments);
+            if (studentSolution.isOverdue()) {
+                assignmentResponse.setStatus("Submitted");
+            } else {
+                assignmentResponse.setStatus("Late");
+            }
+        }
+        else {
+            assignmentResponse.setStatus("Not submitted");
+        }
+        return assignmentResponse;
+    }
+
     public void getAssignmentFiles(String token, int id, String requestedFile) throws CustomException {
+        //TODO Maybe add control if the user has access to the assignment
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null) {
+            Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+            if (student == null) {
+                throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител или ученик с този тоукън, моля логнете се");
+            }
+        }
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         if (assignment.getAssignmentLocation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
@@ -1444,6 +1513,20 @@ public class CourseService {
             }
         }
         if (!hasFile) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
+    }
+
+    public String uploadSolutionFiles(String token, int id, String paths) throws CustomException {
+        System.out.println("Reached service");
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Solution solution = solutionRepo.getSolutionByAssignment_AssignmentID(id);
+        if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено задача с това id");
+        String unneededPaths = "";
+        unneededPaths += solution.getSolutionFilesLocation();
+        unneededPaths = unneededPaths.replace(paths, "");
+        solution.setSolutionFilesLocation(paths);
+        solutionRepo.save(solution);
+        return unneededPaths;
     }
 
     public void getSolutionFiles(String token, int id, String requestedFile) throws CustomException {

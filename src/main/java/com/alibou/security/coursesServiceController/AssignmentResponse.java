@@ -2,6 +2,8 @@ package com.alibou.security.coursesServiceController;
 
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Builder
@@ -14,9 +16,11 @@ public class AssignmentResponse {
     private String teacherName;
     private String description;
     private String[] fileNames;
+    private String[] solutionFileNames;
     private String date;
     private String time;
     private String status;
     private String comment;
     private int commentAmount;
+    private List<AssignmentResponse> comments;
 }
