@@ -32,9 +32,10 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles Method Argument is not valid
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param headers headers of the request
-     * @param status HttpStatus
+     * @param status  HttpStatus
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
@@ -56,9 +57,10 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles a missing request parameter
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param headers headers of the request
-     * @param status HttpStatus
+     * @param status  HttpStatus
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
@@ -74,11 +76,12 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles constraint violations
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
-    @ExceptionHandler({ ConstraintViolationException.class })
+    @ExceptionHandler({ConstraintViolationException.class})
     public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex, WebRequest request) {
         StringBuilder message = new StringBuilder();
         message.append(ex.getLocalizedMessage()).append("\n");
@@ -94,11 +97,12 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles Method Argument type is not valid
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
-    @ExceptionHandler({ MethodArgumentTypeMismatchException.class })
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class})
     public ResponseEntity<Object> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex, WebRequest request) {
         String error = ex.getName() + " should be of type " + Objects.requireNonNull(ex.getRequiredType()).getName();
         String message = ex.getLocalizedMessage();
@@ -109,9 +113,10 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles no handler found for method
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param headers headers of the request
-     * @param status HttpStatus
+     * @param status  HttpStatus
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
@@ -126,9 +131,10 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles Request endpoint Method is not supported
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param headers headers of the request
-     * @param status HttpStatus
+     * @param status  HttpStatus
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
@@ -145,9 +151,10 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles media type not supported
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param headers headers of the request
-     * @param status HttpStatus
+     * @param status  HttpStatus
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
@@ -164,9 +171,10 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles message not readable
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param headers headers of the request
-     * @param status HttpStatus
+     * @param status  HttpStatus
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
@@ -180,11 +188,12 @@ public class RestExceptionHandling extends ResponseEntityExceptionHandler {
 
     /**
      * Handles all other undefined exceptions for the sent requests
-     * @param ex the thrown Exception by Spring
+     *
+     * @param ex      the thrown Exception by Spring
      * @param request the request, because of which the exception is thrown
      * @return an API-Error with the HttpStatus and an error message
      */
-    @ExceptionHandler({ Exception.class })
+    @ExceptionHandler({Exception.class})
     public ResponseEntity<Object> handleAll(Exception ex, WebRequest request) {
         ApiError apiError = new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getLocalizedMessage());
         return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());

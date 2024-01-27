@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @SuperBuilder
-public class CourseTermin extends Termin{
+public class CourseTermin extends Termin {
     private int weekLength;
     @Column()
     private String courseDays;

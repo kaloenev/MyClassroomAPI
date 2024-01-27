@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     Lesson getLessonByLessonID(int id);
+
     //TODO find a way to remove drafts from results in next 2 queries
     List<Lesson> findTop12ByOrderByPopularityDesc();
 
@@ -26,6 +27,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
 
     @Query("SELECT distinct l.subject from Lesson l order by l.subject ASC")
     List<String> getAllSubjects();
+
     @Query("SELECT distinct l.grade from Lesson l order by l.grade ASC")
     List<String> getAllGrades();
 

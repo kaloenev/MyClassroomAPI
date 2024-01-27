@@ -10,14 +10,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Random;
 
 @RestController
@@ -33,6 +37,60 @@ public class UserController {
     private Random random = new Random();
     private final UserService userService;
 
+    @MessageMapping("/user.addUser")
+    public ChatUser addUser(
+            @Payload ChatUser user
+    ) {
+        userService.saveUser(user);
+        return user;
+    }
+
+    @MessageMapping("/user.disconnectUser")
+    public ChatUser disconnectUser(
+            @Payload ChatUser user
+    ) {
+        userService.disconnect(user);
+        return user;
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<ChatUser>> findConnectedUsers() {
+        return ResponseEntity.ok(userService.findConnectedUsers());
+    }
+
+    @GetMapping("/getMessages")
+    public ResponseEntity<Object> getMessages(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(userService.getContacts(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getTeacherCalendar")
+    public ResponseEntity<Object> getTeacherCalendar(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(userService.getCalendarTeacher(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getStudentCalendar")
+    public ResponseEntity<Object> getStudentCalendar(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(userService.getCalendarStudent(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @GetMapping("/verifyTeacher/form")
     public ResponseEntity<Object> getVerificationForm() {
         return ResponseEntity.ok(userService.getVerificationForm());
@@ -43,13 +101,13 @@ public class UserController {
                                                 HttpServletRequest httpRequest) {
         int teacherId;
         try {
-        teacherId = userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
-                request.getGender(), request.getCity(), request.getDescription(), request.getSubjects(),
-                request.getDegree(), request.getSchool(), request.getUniversity(), request.getSpecialty(), request.getExperienceRequests());
-            } catch (IOException e) {
-                CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-                return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-            } catch (CustomException e) {
+            teacherId = userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
+                    request.getGender(), request.getCity(), request.getDescription(), request.getSubjects(),
+                    request.getDegree(), request.getSchool(), request.getUniversity(), request.getSpecialty(), request.getExperienceRequests());
+        } catch (IOException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        } catch (CustomException e) {
             e.printStackTrace();
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -64,8 +122,7 @@ public class UserController {
         try {
             if (imageId > 0 && imageId < 5) {
                 userService.saveStudentImage(httpRequest.getHeader("Authorization"), defaultImagePath + imageId);
-            }
-            else  {
+            } else {
                 if (requestFiles.length > 1) {
                     CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
                     return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -153,8 +210,7 @@ public class UserController {
     public ResponseEntity<Object> getTeacherProfile(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(userService.getTeacherPage(id, httpRequest.getHeader("Authorization")));
-        }
-        catch (CustomException e) {
+        } catch (CustomException e) {
             e.printStackTrace();
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -208,9 +264,6 @@ public class UserController {
         userService.likeTeacher(httpServletRequest.getHeader("Authorization"), id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
-
-
 
 
 //    @PostMapping("/exclusive/description")

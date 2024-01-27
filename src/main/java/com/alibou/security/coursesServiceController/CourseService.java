@@ -117,8 +117,9 @@ public class CourseService {
     public void publishDraft(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         Lesson lesson = lessonRepository.getLessonByLessonID(id);
-        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.CONFLICT,
-                "Не притежавате този курс");
+        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
+            throw new CustomException(HttpStatus.CONFLICT,
+                    "Не притежавате този курс");
         checkForUnallowedValues(lesson);
         lesson.setDraft(false);
         lessonRepository.save(lesson);
@@ -126,9 +127,10 @@ public class CourseService {
         else addNewPriceCourse(lesson.getPrice());
     }
 
-    private void checkForUnallowedValues(Lesson lesson) throws CustomException  {
-        if (lesson.getTitle() == null || Objects.equals(lesson.getTitle(), "")) throw new CustomException(HttpStatus.CONFLICT,
-                "Не сте задали заглавие на курса");
+    private void checkForUnallowedValues(Lesson lesson) throws CustomException {
+        if (lesson.getTitle() == null || Objects.equals(lesson.getTitle(), ""))
+            throw new CustomException(HttpStatus.CONFLICT,
+                    "Не сте задали заглавие на курса");
         if (lesson.getLength() < 30) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали дължина на урока");
         if (lesson.getDescription() == null || Objects.equals(lesson.getDescription(), ""))
             throw new CustomException(HttpStatus.CONFLICT, "Не сте задали описание на курса");
@@ -138,8 +140,10 @@ public class CourseService {
         if (lesson.getPrice() <= 0) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали цена на курса");
         if (lesson.getGrade() == null || Objects.equals(lesson.getGrade(), ""))
             throw new CustomException(HttpStatus.CONFLICT, "Не сте задали описание на курса");
-        if (lesson.getStudentsUpperBound() <= 0) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали максимален брой ученици");
-        if (lesson.getThemas() == null || lesson.getThemas().isEmpty()) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали теми");
+        if (lesson.getStudentsUpperBound() <= 0)
+            throw new CustomException(HttpStatus.CONFLICT, "Не сте задали максимален брой ученици");
+        if (lesson.getThemas() == null || lesson.getThemas().isEmpty())
+            throw new CustomException(HttpStatus.CONFLICT, "Не сте задали теми");
     }
     //TODO Check why courses get full without anyone being enrolled in them
 
@@ -222,7 +226,9 @@ public class CourseService {
                 themaRepository.save(thema);
             }
             lesson.setStudentsUpperBound(1);
-            lesson.setThemas(Collections.singletonList(thema));
+            List<Thema> themas = new ArrayList<>();
+            themas.add(thema);
+            lesson.setThemas(themas);
             lessonRepository.save(lesson);
             if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
@@ -269,7 +275,7 @@ public class CourseService {
             throw new CustomException(HttpStatus.CONFLICT, "Моля добавете теми или запазете курса като чернова");
 
         if ((courseRequest.getPrivateLessonTermins() == null || courseRequest.getPrivateLessonTermins().isEmpty())
-        && (courseRequest.getCourseTerminRequests() == null || courseRequest.getCourseTerminRequests().isEmpty()))
+                && (courseRequest.getCourseTerminRequests() == null || courseRequest.getCourseTerminRequests().isEmpty()))
             throw new CustomException(HttpStatus.CONFLICT, "Моля добавете дати или запазете курса като чернова");
     }
 
@@ -490,7 +496,6 @@ public class CourseService {
                 }
             }
             lessonResponses.add(lessonResponse);
-            lessonResponses.add(lessonResponse);
         }
 
         List<ReviewResponse> reviewResponses = new ArrayList<>();
@@ -563,10 +568,14 @@ public class CourseService {
         String sort = request.getSort();
         if (sort == null) sort = "";
         switch (sort) {
-            case "Lowest price" -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.price").descending());
-            case "Highest rating" -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.rating").descending());
-            case "Starting soonest" -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("dateTime").ascending());
-            default -> sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.popularity").descending());
+            case "Lowest price" ->
+                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.price").descending());
+            case "Highest rating" ->
+                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.rating").descending());
+            case "Starting soonest" ->
+                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("dateTime").ascending());
+            default ->
+                    sortedAndPaged = PageRequest.of(request.getPageNumber() - 1, 12, Sort.by("lesson.popularity").descending());
         }
         if (request.getPriceLowerBound() >= 0 && request.getPriceUpperBound() == 0) {
             request.setPriceUpperBound(10000);
@@ -598,8 +607,7 @@ public class CourseService {
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                         hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, true, sortedAndPaged);
-            }
-            else {
+            } else {
                 lessons = lessonTerminRepo.getFilteredLessonTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                         hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
@@ -618,8 +626,7 @@ public class CourseService {
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                         hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
                         Timestamp.valueOf(request.getUpperBound()), false, false, sortedAndPaged);
-            }
-            else {
+            } else {
                 lessons = courseTerminRepo.getFilteredCourseTermins(request.getSearchTerm(), request.getSearchTerm(), request.getSearchTerm(),
                         request.getSubject(), false, request.getGrade(), request.getPriceLowerBound(), request.getPriceUpperBound(),
                         hoursLowerBound, hoursUpperBound, Timestamp.valueOf(request.getLowerBound()),
@@ -728,7 +735,8 @@ public class CourseService {
     public List<CourseTerminRequestResponse> addDate(CourseTerminRequestResponse courseRequest, int id, String token) throws CustomException {
         //TODO Check if the teacher has access to the course with id
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Lesson lesson = lessonRepository.getLessonByLessonID(id);
         if (lesson.isPrivateLesson()) {
             String hours = courseRequest.getCourseHours();
@@ -775,7 +783,8 @@ public class CourseService {
     public LessonResponse getCourseInformation(int id, String token) throws CustomException {
         //TODO Check if the teacher has access to the course with id
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         var lesson = lessonRepository.getLessonByLessonID(id);
         LessonResponse lessonResponse;
         if (lesson.isPrivateLesson()) {
@@ -808,15 +817,18 @@ public class CourseService {
 
     public void reportCourse(int id, String title, String description, String token, boolean isPrivateLesson) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        if (student == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+        if (student == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
         String email;
         if (isPrivateLesson) {
             LessonTermin lessonTermin = lessonTerminRepo.getLessonTerminByTerminID(id);
-            if (lessonTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
+            if (lessonTermin == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             email = lessonTermin.getLesson().getTeacher().getEmail();
         } else {
             CourseTermin courseTermin = courseTerminRepo.getCourseTerminByTerminID(id);
-            if (courseTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
+            if (courseTermin == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             email = courseTermin.getLesson().getTeacher().getEmail();
         }
         EmailDetails emailDetails = new EmailDetails();
@@ -831,11 +843,12 @@ public class CourseService {
         Student student = null;
         if (isTeacher) {
             teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-            if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
-        }
-        else {
+            if (teacher == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        } else {
             student = studentRepository.findStudentByTokens_token(token.substring(7));
-            if (student == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+            if (student == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
         }
         CourseTermin courseTermin;
         LessonTermin lessonTermin;
@@ -845,7 +858,8 @@ public class CourseService {
         ClassroomPageResponse classroomPageResponse;
         if (isPrivateLesson) {
             lessonTermin = lessonTerminRepo.getLessonTerminByTerminID(terminId);
-            if (lessonTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
+            if (lessonTermin == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             lesson = lessonTermin.getLesson();
             if (isTeacher) {
                 if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
@@ -884,28 +898,28 @@ public class CourseService {
                     ).startDate(lessonTermin.getDate()).teacherId(teacher.getId())
                     .themas(themas).courseTerminId(lessonTermin.getTerminID())
                     .enrolledStudents(1).students(students).teacherName(teacherName).build();
-        }
-        else {
+        } else {
             courseTermin = courseTerminRepo.getCourseTerminByTerminID(terminId);
-            if (courseTermin == null) throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
+            if (courseTermin == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Търсената инстанция на урока не е намерена");
             lesson = courseTermin.getLesson();
             String teacherName = null;
             if (isTeacher) {
                 if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
                     throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
-                for (Student terminStudent :  courseTermin.getEnrolledStudents()) {
+                for (Student terminStudent : courseTermin.getEnrolledStudents()) {
                     students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(), terminStudent.getLastname()));
                 }
             } else {
                 boolean isInCourse = false;
-               for (Student terminStudent : courseTermin.getEnrolledStudents()) {
-                   if (Objects.equals(terminStudent.getId(), student.getId())) {
-                       isInCourse = true;
-                       break;
-                   }
-               }
-               if (!isInCourse) throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
-               students = null;
+                for (Student terminStudent : courseTermin.getEnrolledStudents()) {
+                    if (Objects.equals(terminStudent.getId(), student.getId())) {
+                        isInCourse = true;
+                        break;
+                    }
+                }
+                if (!isInCourse) throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
+                students = null;
                 teacher = lesson.getTeacher();
                 teacherName = teacher.getFirstname() + " " + teacher.getLastname();
             }
@@ -930,8 +944,8 @@ public class CourseService {
             String[] daysString = courseTermin.getCourseDays().replaceFirst("\\[", "").replaceFirst("]", "")
                     .replace(" ", "").split(",");
             int[] days = new int[daysString.length];
-            for (int i = 0; i < daysString.length; i ++) {
-                days [i] = Integer.parseInt(String.valueOf(daysString[i]));
+            for (int i = 0; i < daysString.length; i++) {
+                days[i] = Integer.parseInt(String.valueOf(daysString[i]));
             }
             classroomPageResponse = ClassroomPageResponse.builder().lessonTitle(lesson.getTitle())
                     .lessonDescription(lesson.getDescription()).courseHours(courseTermin.getTime() + " - " + timestamp.toString().substring(11, 16))
@@ -1006,7 +1020,9 @@ public class CourseService {
                     Teacher teacher = lesson.getTeacher();
                     lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                             teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
-                            lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
+                            lessonTermin.getDate(), lessonTermin.getTime() + " - "
+                            + new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16),
+                            teacher.getId());
                     lessonTerminCounter++;
                     lessonResponse.setLength(lesson.getLength());
                     lessonResponses.add(lessonResponse);
@@ -1023,7 +1039,9 @@ public class CourseService {
                 Teacher teacher = lesson.getTeacher();
                 lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
-                        lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
+                        lessonTermin.getDate(), lessonTermin.getTime() + " - "
+                        + new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16),
+                        teacher.getId());
                 lessonResponse.setLength(lesson.getLength());
                 lessonResponses.add(lessonResponse);
             }
@@ -1096,12 +1114,9 @@ public class CourseService {
         switch (sort) {
             case "Most popular" ->
                     sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("popularity").descending());
-            case "Most expensive" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("price").descending());
-            case "Cheapest" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("price").ascending());
-            case "Highest rating" ->
-                    sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("rating").descending());
+            case "Most expensive" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("price").descending());
+            case "Cheapest" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("price").ascending());
+            case "Highest rating" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("rating").descending());
 //            case "Starting soonest" -> {
 //                sortedAndPaged = PageRequest.of(pageNumber - 1, 8, Sort.by("dateTime").ascending());
 //                sortByCourse = true;
@@ -1137,22 +1152,22 @@ public class CourseService {
         } else {
             lessons = lessonRepository.getLessonByisLikedByStudent_id(student.getId(), sortedAndPaged);
         }
-            for (Lesson lesson : lessons) {
-                List<CourseTermin> termins;
-                List<LessonTermin> termins2;
-                LessonResponse lessonResponse;
-                if (!lesson.isPrivateLesson()) {
-                    termins = lesson.getCourseTermins();
-                    lessonResponse = new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
-                            termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
-                    lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
-                } else {
-                    termins2 = lesson.getLessonTermins();
-                    lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
-                }
-                lessonResponses.add(lessonResponse);
+        for (Lesson lesson : lessons) {
+            List<CourseTermin> termins;
+            List<LessonTermin> termins2;
+            LessonResponse lessonResponse;
+            if (!lesson.isPrivateLesson()) {
+                termins = lesson.getCourseTermins();
+                lessonResponse = new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(),
+                        termins.get(0).getStudentsUpperBound() - termins.get(0).getPlacesRemaining());
+                lessonResponse.setWeekLength(lesson.getCourseTermins().get(0).getWeekLength());
+            } else {
+                termins2 = lesson.getLessonTermins();
+                lessonResponse = new LessonResponse(lesson, termins2.get(0).getDate(), termins2.get(0).getTime(), 0);
             }
-        return new PagedResponse(lessons.getTotalElements(), 8 ,lessonResponses, null);
+            lessonResponses.add(lessonResponse);
+        }
+        return new PagedResponse(lessons.getTotalElements(), 8, lessonResponses, null);
     }
 
     public List<LessonResponse> getTeacherLessons(String token, String lessonStatus, boolean privateLessons, boolean upcoming) throws ClassCastException, CustomException {
@@ -1209,39 +1224,44 @@ public class CourseService {
         return lessonResponses;
     }
 
-    public void editDescription (String description, int themaId, String token) throws CustomException {
+    public void editDescription(String description, int themaId, String token) throws CustomException {
         //TODO check if thema belongs to teacher
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(themaId);
         thema.setDescription(description);
         themaRepository.save(thema);
     }
 
-    public void addLinkToRecording (String linkToRecording, int themaId, String token) throws CustomException {
+    public void addLinkToRecording(String linkToRecording, int themaId, String token) throws CustomException {
         //TODO check if thema belongs to teacher
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(themaId);
         thema.setLinkToRecording(linkToRecording);
         themaRepository.save(thema);
     }
 
-    public String getLinkToRecording (int themaId, String token) throws CustomException {
+    public String getLinkToRecording(int themaId, String token) throws CustomException {
         //TODO check if thema belongs to teacher
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(themaId);
         return thema.getLinkToRecording();
     }
 
     public void deleteCourse(int id, String token) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Lesson lesson = lessonRepository.getLessonByLessonID(id);
         if (lesson == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен курс с това Id");
-        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId())) throw new CustomException(HttpStatus.FORBIDDEN,
-                "Нямате достъп до този курс");
+        if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
+            throw new CustomException(HttpStatus.FORBIDDEN,
+                    "Нямате достъп до този курс");
 //        if (lesson.isPrivateLesson()) {
 //            List<LessonTermin> lessonTermins = lesson.getLessonTermins();
 //            for (LessonTermin lessonTermin : lessonTermins) {
@@ -1277,8 +1297,7 @@ public class CourseService {
                     }
                 }
                 lessonTerminRepo.deleteAll(lessonTermins);
-            }
-            else {
+            } else {
                 courseTermins = lesson.getCourseTermins();
                 if (themasNotNull) {
                     for (CourseTermin courseTermin : courseTermins) {
@@ -1293,7 +1312,8 @@ public class CourseService {
 
     public String addResource(int id, String token, String filename) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
         String oldFilename = thema.getPresentation();
         thema.setPresentation(filename);
@@ -1323,7 +1343,8 @@ public class CourseService {
 
     public List<CourseTerminRequestResponse> getCourseTerminsTeacher(String token, int lessonId) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         List<CourseTermin> courseTermins = courseTerminRepo.getCourseTerminsByLessonID(lessonId);
         List<CourseTerminRequestResponse> courseTerminRequestResponses = new ArrayList<>();
         for (CourseTermin courseTermin : courseTermins) {
@@ -1335,7 +1356,8 @@ public class CourseService {
 
     public List<LessonTerminResponse> getLessonTerminsTeacher(String token, int lessonId) throws ClassCastException, CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         List<LessonTermin> lessonTermins = lessonTerminRepo.getLessonTerminsByLessonID(lessonId);
         List<LessonTerminResponse> lessonResponses = new ArrayList<>();
         int dayOfMonth = -1;
@@ -1365,7 +1387,8 @@ public class CourseService {
         switch (sort) {
             case "Newest" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
             case "Oldest" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").ascending());
-            case "Highest rating" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
+            case "Highest rating" ->
+                    sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").descending());
             case "Lowest rating" -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("rating").ascending());
             default -> sortedAndPaged = PageRequest.of(pageNumber - 1, 12, Sort.by("dateTime").descending());
         }
@@ -1379,7 +1402,8 @@ public class CourseService {
 
     public Integer addAssignment(AssignmentRequest assignmentRequest, String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
         if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена тема с това id");
         CourseTermin courseTermin = thema.getCourseTermin();
@@ -1392,8 +1416,7 @@ public class CourseService {
                             + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
             courseTerminRepo.save(courseTermin);
-        }
-        else {
+        } else {
             LessonTermin lessonTermin = thema.getLessonTermin();
             students.add(lessonTermin.getStudent());
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
@@ -1413,7 +1436,8 @@ public class CourseService {
 
     public void editAssignment(AssignmentRequest assignmentRequest, String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
 //        List<Student> students = assignment.getStudents();
@@ -1430,7 +1454,8 @@ public class CourseService {
     public String uploadAssignmentFiles(String token, int id, String paths) throws CustomException {
         System.out.println("Reached service");
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         String unneededPaths = "";
@@ -1443,7 +1468,8 @@ public class CourseService {
 
     public AssignmentResponse getAssignment(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         String[] files = assignment.getAssignmentLocation().split(",");
@@ -1485,8 +1511,7 @@ public class CourseService {
             } else {
                 assignmentResponse.setStatus("Late");
             }
-        }
-        else {
+        } else {
             assignmentResponse.setStatus("Not submitted");
         }
         return assignmentResponse;
@@ -1503,7 +1528,8 @@ public class CourseService {
         }
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
-        if (assignment.getAssignmentLocation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
+        if (assignment.getAssignmentLocation() == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
         String[] assignmentFiles = assignment.getAssignmentLocation().split(",");
         boolean hasFile = false;
         for (String assignmentFile : assignmentFiles) {
@@ -1518,7 +1544,8 @@ public class CourseService {
     public String uploadSolutionFiles(String token, int id, String paths) throws CustomException {
         System.out.println("Reached service");
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Solution solution = solutionRepo.getSolutionByAssignment_AssignmentID(id);
         if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено задача с това id");
         String unneededPaths = "";
@@ -1531,10 +1558,12 @@ public class CourseService {
 
     public void getSolutionFiles(String token, int id, String requestedFile) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Solution solution = solutionRepo.getSolutionBySolutionID(id);
         if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
-        if (solution.getSolutionFilesLocation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
+        if (solution.getSolutionFilesLocation() == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
         String[] solutionFiles = solution.getSolutionFilesLocation().split(",");
         boolean hasFile = false;
         for (String solutionFile : solutionFiles) {
@@ -1548,16 +1577,19 @@ public class CourseService {
 
     public String getResourceFile(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
         if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
-        if (thema.getPresentation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени ресурси към тази тема");
+        if (thema.getPresentation() == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени ресурси към тази тема");
         return thema.getPresentation();
     }
 
     public List<AssignmentResponse> checkSolutions(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         List<AssignmentResponse> solutions = new ArrayList<>();
@@ -1577,7 +1609,8 @@ public class CourseService {
 
     public void leaveComment(String token, int id, String actualComment) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Solution solution = solutionRepo.getSolutionBySolutionID(id);
         if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
         Comment comment = Comment.builder().actualComment(actualComment).solution(solution)
@@ -1589,7 +1622,8 @@ public class CourseService {
 
     public List<AssignmentResponse> getComments(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Solution solution = solutionRepo.getSolutionBySolutionID(id);
         if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
         List<Comment> comments = solution.getComments();

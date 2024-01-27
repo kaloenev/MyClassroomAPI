@@ -65,7 +65,6 @@ public class LessonResponse {
     private boolean isLikedByStudent;
 
 
-
     public LessonResponse(Lesson lesson, String dateTime, String time, int numberOfStudents) {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();

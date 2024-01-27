@@ -7,14 +7,15 @@ import org.springframework.http.HttpStatus;
  * @version 1.0
  * This class is used to throw custom exceptions in the Fallob system.
  */
-public class CustomException extends Exception{
+public class CustomException extends Exception {
 
     private HttpStatus status;
     private String message;
 
     /**
      * Constructor that sets the HttpStatus and message
-     * @param status the HttpStatus to be printed
+     *
+     * @param status  the HttpStatus to be printed
      * @param message the message to be printed
      */
     public CustomException(HttpStatus status, String message) {
@@ -24,9 +25,10 @@ public class CustomException extends Exception{
 
     /**
      * Constructor that sets the HttpStatus, message and cause
-     * @param status the HttpStatus to be printed
+     *
+     * @param status  the HttpStatus to be printed
      * @param message the message to be printed
-     * @param cause the cause of the Exception
+     * @param cause   the cause of the Exception
      */
     public CustomException(HttpStatus status, String message, Throwable cause) {
         this.setStatus(status);
@@ -36,6 +38,7 @@ public class CustomException extends Exception{
 
     /**
      * Getter
+     *
      * @return the HttpStatus to be printed
      */
     public HttpStatus getStatus() {
@@ -44,6 +47,7 @@ public class CustomException extends Exception{
 
     /**
      * Setter
+     *
      * @param status the HttpStatus to be printed
      */
     public void setStatus(HttpStatus status) {
@@ -52,6 +56,7 @@ public class CustomException extends Exception{
 
     /**
      * Getter
+     *
      * @return the message to be printed
      */
     @Override
@@ -61,6 +66,7 @@ public class CustomException extends Exception{
 
     /**
      * Setter
+     *
      * @param message the message to be printed
      */
     public void setMessage(String message) {

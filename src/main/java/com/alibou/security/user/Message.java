@@ -28,6 +28,14 @@ public class Message {
     @ToString.Exclude
     private MessageContact contact;
 
+    public String getTime() {
+        return dateTime.toString().substring(11, 16);
+    }
+
+    public String getDate() {
+        return dateTime.toString().substring(0, 10);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

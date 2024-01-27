@@ -17,39 +17,39 @@ import java.util.Objects;
 @Entity
 public class Token {
 
-  @Id
-  @GeneratedValue
-  public Integer id;
+    @Id
+    @GeneratedValue
+    public Integer id;
 
-  @Column(unique = true)
-  public String token;
+    @Column(unique = true)
+    public String token;
 
-  @Enumerated(EnumType.STRING)
-  public TokenType tokenType = TokenType.BEARER;
+    @Enumerated(EnumType.STRING)
+    public TokenType tokenType = TokenType.BEARER;
 
-  public boolean revoked;
+    public boolean revoked;
 
-  public boolean expired;
+    public boolean expired;
 
-  public Timestamp timestamp;
+    public Timestamp timestamp;
 
-  public boolean rememberMe;
+    public boolean rememberMe;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
-  @ToString.Exclude
-  public User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @ToString.Exclude
+    public User user;
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
-    Token token = (Token) o;
-    return id != null && Objects.equals(id, token.id);
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
+        Token token = (Token) o;
+        return id != null && Objects.equals(id, token.id);
+    }
 
-  @Override
-  public int hashCode() {
-    return getClass().hashCode();
-  }
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

@@ -13,7 +13,8 @@ public class ApiError {
 
     /**
      * Constructor that sets the HttpStatus and message
-     * @param status the HttpStatus to be printed
+     *
+     * @param status  the HttpStatus to be printed
      * @param message the message to be printed
      */
     public ApiError(HttpStatus status, String message) {
@@ -23,6 +24,7 @@ public class ApiError {
 
     /**
      * Getter
+     *
      * @return the HttpStatus to be printed
      */
     public HttpStatus getStatus() {
@@ -31,6 +33,7 @@ public class ApiError {
 
     /**
      * Getter
+     *
      * @return the HttpStatus to be printed
      */
     public String getMessage() {

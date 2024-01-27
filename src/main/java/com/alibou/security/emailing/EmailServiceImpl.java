@@ -21,12 +21,12 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private JavaMailSender javaMailSender;
 
-    @Value("${spring.mail.username}") private String sender;
+    @Value("${spring.mail.username}")
+    private String sender;
 
     // Method 1
     // To send a simple email
-    public boolean sendSimpleMail(EmailDetails details)
-    {
+    public boolean sendSimpleMail(EmailDetails details) {
 
         // Try block to check for exceptions
         try {
@@ -55,8 +55,7 @@ public class EmailServiceImpl implements EmailService {
     // Method 2
     // To send an email with attachment
     public String
-    sendMailWithAttachment(EmailDetails details)
-    {
+    sendMailWithAttachment(EmailDetails details) {
         // Creating a mime message
         MimeMessage mimeMessage
                 = javaMailSender.createMimeMessage();

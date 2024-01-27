@@ -28,54 +28,54 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-  private final JwtService jwtService;
-  private final UserDetailsService userDetailsService;
-  private final TokenRepository tokenRepository;
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
+    private final TokenRepository tokenRepository;
 
-  private static final int timeWithoutRemember = 1800000;
+    private static final int timeWithoutRemember = 1800000;
 
-  private static final int timeWithRemember = 259200000;
+    private static final int timeWithRemember = 259200000;
 
-  @Override
-  protected void doFilterInternal(
-      @NonNull HttpServletRequest request,
-      @NonNull HttpServletResponse response,
-      @NonNull FilterChain filterChain
-  ) throws ServletException, IOException {
-    if (request.getServletPath().contains("/api/v1/auth")) {
-      filterChain.doFilter(request, response);
-      return;
+    @Override
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+        if (request.getServletPath().contains("/api/v1/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+        final String userEmail;
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        jwt = authHeader.substring(7);
+        userEmail = jwtService.extractUsername(jwt);
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            var databaseToken = tokenRepository.findByToken(jwt).get();
+            long lastLogin = LocalDateTime.now().getNano() - databaseToken.getTimestamp().getTime();
+            boolean validTimestamp = (!databaseToken.rememberMe && (timeWithoutRemember - lastLogin > 0))
+                    || (databaseToken.rememberMe && (timeWithRemember - lastLogin > 0));
+
+            boolean isTokenValid = (!databaseToken.isExpired() || !databaseToken.isRevoked()) && validTimestamp;
+            if (jwtService.isTokenValid(jwt, userDetails) && Boolean.TRUE.equals(isTokenValid)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+            databaseToken.setTimestamp(Timestamp.valueOf(LocalDateTime.now()));
+        }
+        filterChain.doFilter(request, response);
     }
-    final String authHeader = request.getHeader("Authorization");
-    final String jwt;
-    final String userEmail;
-    if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
-      filterChain.doFilter(request, response);
-      return;
-    }
-    jwt = authHeader.substring(7);
-    userEmail = jwtService.extractUsername(jwt);
-    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-      var databaseToken = tokenRepository.findByToken(jwt).get();
-      long lastLogin = LocalDateTime.now().getNano() - databaseToken.getTimestamp().getTime();
-      boolean validTimestamp = (!databaseToken.rememberMe && (timeWithoutRemember - lastLogin > 0))
-              || (databaseToken.rememberMe && (timeWithRemember - lastLogin > 0));
-
-      boolean isTokenValid = (!databaseToken.isExpired() || !databaseToken.isRevoked()) && validTimestamp;
-      if (jwtService.isTokenValid(jwt, userDetails) && Boolean.TRUE.equals(isTokenValid)) {
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-            userDetails,
-            null,
-            userDetails.getAuthorities()
-        );
-        authToken.setDetails(
-            new WebAuthenticationDetailsSource().buildDetails(request)
-        );
-        SecurityContextHolder.getContext().setAuthentication(authToken);
-      }
-      databaseToken.setTimestamp(Timestamp.valueOf(LocalDateTime.now()));
-    }
-    filterChain.doFilter(request, response);
-  }
 }

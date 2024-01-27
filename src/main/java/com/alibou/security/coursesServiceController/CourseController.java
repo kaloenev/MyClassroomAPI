@@ -38,22 +38,20 @@ public class CourseController {
     ) {
         try {
             courseService.createCourse(httpRequest.getHeader("Authorization"), request, false, false);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-        catch (CustomException e) {
-                CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
-                return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-            }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/editCourse/{id}")
     public ResponseEntity<Object> editCourse(@PathVariable int id,
-            @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+                                             @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
     ) {
         try {
             courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, false, false);
-        }
-        catch (CustomException e) {
+        } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
@@ -75,10 +73,10 @@ public class CourseController {
 
     @PostMapping("/editCourseDraft/{id}")
     public ResponseEntity<Object> editCourseDraft(@PathVariable int id,
-            @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+                                                  @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
     ) {
         try {
-            courseService.editCourse(httpRequest.getHeader("Authorization"),id, request, true, false);
+            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, true, false);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -101,10 +99,10 @@ public class CourseController {
 
     @PostMapping("/editPrivateLessonDraft/{id}")
     public ResponseEntity<Object> editPrivateLessonDraft(@PathVariable int id,
-                                                    @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+                                                         @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
     ) {
         try {
-            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, true,true);
+            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, true, true);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -114,10 +112,10 @@ public class CourseController {
 
     @PostMapping("/editPrivateLesson/{id}")
     public ResponseEntity<Object> editPrivateLesson(@PathVariable int id,
-            @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
+                                                    @RequestBody CreateCourseRequest request, HttpServletRequest httpRequest
     ) {
         try {
-            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, false,true);
+            courseService.editCourse(httpRequest.getHeader("Authorization"), id, request, false, true);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -153,8 +151,8 @@ public class CourseController {
         try {
             return ResponseEntity.ok(courseService.getFilteredLessons(filterRequest, httpRequest.getHeader("Authorization")));
         } catch (IllegalArgumentException | CustomException e) {
-        CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-        return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
     }
 
@@ -172,7 +170,7 @@ public class CourseController {
 
     @PostMapping("/addLinkToRecording/{id}")
     public ResponseEntity<Object> addLinkToRecording(@PathVariable int id, @RequestBody ThemaRequest themaRequest,
-                                                       HttpServletRequest httpRequest) {
+                                                     HttpServletRequest httpRequest) {
         try {
             courseService.addLinkToRecording(themaRequest.getLinkToRecording(), id, httpRequest.getHeader("Authorization"));
         } catch (CustomException e) {
@@ -216,23 +214,23 @@ public class CourseController {
 
     @PostMapping("/addResource/{id}")
     public ResponseEntity<Object> addResource(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
-                                                     HttpServletRequest httpRequest) {
+                                              HttpServletRequest httpRequest) {
         if (requestFiles.length > 1) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-            Path newFile;
-            newFile = Paths.get("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
-                    + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
-            filenameCounter++;
-            try {
-                Files.copy(requestFiles[0].getInputStream(), newFile);
-                courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.toString());
-            } catch (IOException | CustomException e) {
-                CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-                return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-            }
-            return new ResponseEntity<>(HttpStatus.OK);
+        Path newFile;
+        newFile = Paths.get("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
+                + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
+        filenameCounter++;
+        try {
+            Files.copy(requestFiles[0].getInputStream(), newFile);
+            courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.toString());
+        } catch (IOException | CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/deleteResource/{id}")
@@ -249,15 +247,14 @@ public class CourseController {
     }
 
     /**
-     *
-     * @param id themaId
+     * @param id                themaId
      * @param assignmentRequest
      * @param httpRequest
      * @return
      */
     @PostMapping("/addAssignment/{id}")
     public ResponseEntity<Object> addAssignment(@PathVariable int id, @RequestBody AssignmentRequest assignmentRequest,
-                                                     HttpServletRequest httpRequest) {
+                                                HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(courseService.addAssignment(assignmentRequest, httpRequest.getHeader("Authorization"), id));
         } catch (CustomException e) {
@@ -267,15 +264,14 @@ public class CourseController {
     }
 
     /**
-     *
-     * @param id assignmentId
+     * @param id                assignmentId
      * @param assignmentRequest
      * @param httpRequest
      * @return
      */
     @PostMapping("/editAssignment/{id}")
     public ResponseEntity<Object> editAssignment(@PathVariable int id, @RequestBody AssignmentRequest assignmentRequest,
-                                                HttpServletRequest httpRequest) {
+                                                 HttpServletRequest httpRequest) {
         try {
             courseService.editAssignment(assignmentRequest, httpRequest.getHeader("Authorization"), id);
         } catch (CustomException e) {
@@ -317,7 +313,7 @@ public class CourseController {
 
     @PostMapping("/uploadAssignmentFiles/{id}")
     public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
-                                              HttpServletRequest httpRequest) {
+                                                        HttpServletRequest httpRequest) {
         System.out.println("Reached controller");
         //TODO Check if the person is using this only for a new Assignment (more than 4 files risk)
         if (requestFiles.length > 4) {
@@ -366,7 +362,7 @@ public class CourseController {
 
     @PostMapping("/uploadSolutionFiles/{id}")
     public ResponseEntity<Object> uploadSolutionFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
-                                                        HttpServletRequest httpRequest) {
+                                                      HttpServletRequest httpRequest) {
         System.out.println("Reached controller");
         if (requestFiles.length > 4) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
@@ -404,6 +400,7 @@ public class CourseController {
 
     /**
      * Removes all files from assignment except the one whose paths are sent
+     *
      * @param id
      * @param httpRequest
      * @param filesToDelete
@@ -423,7 +420,7 @@ public class CourseController {
         }
         paths = pathBuilder.substring(0, pathBuilder.length() - 1);
         try {
-            String deleteFiles = courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id,paths);
+            String deleteFiles = courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
             for (String file : deleteFiles.split(",")) {
                 File file1 = new File(file);
                 file1.delete();
@@ -437,7 +434,7 @@ public class CourseController {
     }
 
     @GetMapping("/getAssignmentFile/{path}&&{id}")
-    public ResponseEntity<Object> getAssignmentFile (@PathVariable String path, @PathVariable int id, HttpServletRequest httpRequest) throws IOException {
+    public ResponseEntity<Object> getAssignmentFile(@PathVariable String path, @PathVariable int id, HttpServletRequest httpRequest) throws IOException {
 
         try {
             courseService.getAssignmentFiles(httpRequest.getHeader("Authorization"), id, path);
@@ -467,7 +464,7 @@ public class CourseController {
     }
 
     @GetMapping("/getSolutionFile/{path}&&{id}")
-    public ResponseEntity<Object> getSolutionFile (@PathVariable String path, @PathVariable int id, HttpServletRequest httpRequest) throws IOException {
+    public ResponseEntity<Object> getSolutionFile(@PathVariable String path, @PathVariable int id, HttpServletRequest httpRequest) throws IOException {
 
         try {
             courseService.getSolutionFiles(httpRequest.getHeader("Authorization"), id, path);
@@ -532,7 +529,7 @@ public class CourseController {
     }
 
     @GetMapping("/getResourceFile/{id}")
-    public ResponseEntity<Object> getResourceFile (@PathVariable int id, HttpServletRequest httpRequest) throws IOException {
+    public ResponseEntity<Object> getResourceFile(@PathVariable int id, HttpServletRequest httpRequest) throws IOException {
         String path;
         try {
             path = courseService.getResourceFile(httpRequest.getHeader("Authorization"), id);
@@ -624,7 +621,7 @@ public class CourseController {
     }
 
     @GetMapping(value = "/image/{url}", consumes = MediaType.ALL_VALUE)
-    public ResponseEntity<Object> getImage(@PathVariable("url")String url, HttpServletResponse response) {
+    public ResponseEntity<Object> getImage(@PathVariable("url") String url, HttpServletResponse response) {
         byte[] image;
         try {
             image = Files.readAllBytes(Paths.get(url));
@@ -739,7 +736,7 @@ public class CourseController {
     public ResponseEntity<Object> getStudentCourses(HttpServletRequest httpServletRequest, @RequestBody LessonRequest lessonRequest) {
         try {
             return ResponseEntity.ok(courseService.getStudentAll(httpServletRequest.getHeader("Authorization"),
-                   lessonRequest, "Courses"));
+                    lessonRequest, "Courses"));
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -852,8 +849,6 @@ public class CourseController {
     public ResponseEntity<Object> getSubjectGrades() {
         return ResponseEntity.ok(courseService.getSubjectGrade());
     }
-
-
 
 
 //    @PostMapping("/getLikedCourses")

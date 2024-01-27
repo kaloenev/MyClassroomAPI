@@ -14,7 +14,8 @@ public class CustomWarning {
 
     /**
      * Constructor that sets the HttpStatus and message
-     * @param status the HttpStatus to be printed
+     *
+     * @param status  the HttpStatus to be printed
      * @param message the message to be printed
      */
     public CustomWarning(HttpStatus status, String message) {
@@ -24,6 +25,7 @@ public class CustomWarning {
 
     /**
      * Getter
+     *
      * @return the HttpStatus to be printed
      */
     public HttpStatus getStatus() {
@@ -32,6 +34,7 @@ public class CustomWarning {
 
     /**
      * Getter
+     *
      * @return the HttpStatus to be printed
      */
     public String getMessage() {

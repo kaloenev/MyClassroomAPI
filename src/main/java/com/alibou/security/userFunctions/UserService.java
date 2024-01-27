@@ -1,10 +1,13 @@
 package com.alibou.security.userFunctions;
 
+import com.alibou.security.chatroom.ChatNotification;
 import com.alibou.security.coursesServiceController.*;
 import com.alibou.security.emailing.EmailDetails;
 import com.alibou.security.emailing.EmailService;
 import com.alibou.security.exceptionHandling.CustomException;
+import com.alibou.security.lessons.CourseTermin;
 import com.alibou.security.lessons.Lesson;
+import com.alibou.security.lessons.LessonTermin;
 import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,15 +39,77 @@ public class UserService {
 
     private final EmailService emailService;
 
-    public void sendMessage(String token, String content, int receiverID) throws CustomException {
-        var token1= tokenRepository.findByToken(token);
-        if (token1.isEmpty()) throw new CustomException(HttpStatus.FORBIDDEN, "Invalid token");
-        User user = token1.get().getUser();
-        User user1 = userRepository.findUserById(receiverID);
+    private final MessageRepo messageRepo;
+
+    private final MessageContactRepo messageContactRepo;
+
+    private List<ChatUser> chatUsers;
+
+    public void saveUser(ChatUser user) {
+        chatUsers.add(user);
+    }
+
+    public void disconnect(ChatUser user) {
+        chatUsers.removeIf(chatUser -> Objects.equals(chatUser.getId(), user.getId()));
+    }
+
+    public List<ChatUser> findConnectedUsers() {
+        return chatUsers;
+    }
+
+    public List<MessageContactsResponse> getContacts(String token) throws CustomException {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        Teacher teacher;
+        List<MessageContact> contacts;
+        if (student == null) {
+            teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+            if (teacher == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
+            contacts = teacher.getMessages();
+        } else {
+            contacts = student.getMessages();
+        }
+        List<MessageContactsResponse> responses = new ArrayList<>();
+        for (MessageContact contact : contacts) {
+            List<Message> messages = contact.getMessages();
+            List<ChatNotification> chatNotifications = new ArrayList<>();
+            for (Message message : messages) {
+                ChatNotification chatNotification;
+                if (message.isStudentTheSender()) {
+                    chatNotification = ChatNotification.builder().content(message.getContent())
+                            .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
+                            .senderId(contact.getStudent().getId().toString()).build();
+                } else {
+                    chatNotification = ChatNotification.builder().content(message.getContent())
+                            .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
+                            .senderId(contact.getTeacher().getId().toString()).build();
+                }
+                chatNotifications.add(chatNotification);
+            }
+            MessageContactsResponse messageContactsResponse;
+            if (student == null) {
+                //TODO Add dates as well if the message is not from today
+                messageContactsResponse = MessageContactsResponse.builder().contactId(contact.getMessageID())
+                        .messages(chatNotifications).name(contact.getStudent().getFirstname() + " " + contact.getStudent().getLastname())
+                        .dateTime(chatNotifications.get(0).getTime()).build();
+            } else {
+                messageContactsResponse = MessageContactsResponse.builder().contactId(contact.getMessageID())
+                        .messages(chatNotifications).name(contact.getTeacher().getFirstname() + " " + contact.getTeacher().getLastname())
+                        .dateTime(chatNotifications.get(0).getTime()).build();
+            }
+            responses.add(messageContactsResponse);
+        }
+        return responses;
+    }
+
+    public void sendMessage(int senderId, String content, int receiverID) throws CustomException {
+        //TODO Check security
+        var user = userRepository.findUserById(senderId);
+        var user1 = userRepository.findUserById(receiverID);
         if (user.getRole().equals(Role.STUDENT)) {
-            if (user1.getRole().equals(Role.STUDENT)) throw new CustomException(HttpStatus.FORBIDDEN, "Can not send message to another student");
-            Student student = (Student) user;
-            Teacher teacher = (Teacher) user1;
+            if (user1.getRole().equals(Role.STUDENT))
+                throw new CustomException(HttpStatus.FORBIDDEN, "Can not send message to another student");
+            Student student = studentRepository.findStudentById(senderId);
+            Teacher teacher = teacherRepository.findTeacherById(receiverID);
             List<MessageContact> messageContactList = student.getMessages();
             int counter = messageContactList.size();
             for (MessageContact messageContact : messageContactList) {
@@ -53,13 +118,14 @@ public class UserService {
                     message.setDateTime(new Timestamp(System.currentTimeMillis()));
                     message.setContent(content);
                     message.setStudentTheSender(true);
+                    messageRepo.save(message);
                     messageContact.addNewMessage(message);
+                    messageContactRepo.save(messageContact);
                     student.saveMessage(messageContact);
                     teacher.saveMessage(messageContact);
-                    // Web hooks
                     break;
-                }
-                else if (counter == 1) {
+
+                } else if (counter == 1) {
                     MessageContact messageContact1 = new MessageContact();
                     messageContact1.setStudent(student);
                     messageContact.setTeacher(teacher);
@@ -69,18 +135,19 @@ public class UserService {
                     message.setContent(content);
                     message.setStudentTheSender(true);
                     messages.add(message);
+                    messageRepo.save(message);
                     messageContact.setMessages(messages);
+                    messageContactRepo.save(messageContact);
                     student.saveMessage(messageContact);
                     teacher.saveMessage(messageContact);
-                    // Web hooks
                 }
                 counter--;
             }
-        }
-        else {
-            if (user1.getRole().equals(Role.TEACHER)) throw new CustomException(HttpStatus.FORBIDDEN, "Can not send message to another teacher");
-            Teacher teacher = (Teacher) user;
-            Student student = (Student) user1;
+        } else {
+            if (user1.getRole().equals(Role.TEACHER))
+                throw new CustomException(HttpStatus.FORBIDDEN, "Can not send message to another teacher");
+            Student student = studentRepository.findStudentById(receiverID);
+            Teacher teacher = teacherRepository.findTeacherById(senderId);
             List<MessageContact> messageContactList = teacher.getMessages();
             int counter = messageContactList.size();
             for (MessageContact messageContact : messageContactList) {
@@ -89,13 +156,14 @@ public class UserService {
                     message.setDateTime(new Timestamp(System.currentTimeMillis()));
                     message.setContent(content);
                     message.setStudentTheSender(false);
+                    messageRepo.save(message);
                     messageContact.addNewMessage(message);
+                    messageContactRepo.save(messageContact);
                     student.saveMessage(messageContact);
                     teacher.saveMessage(messageContact);
-                    // Web hooks
                     break;
-                }
-                else if (counter == 1) {
+
+                } else if (counter == 1) {
                     MessageContact messageContact1 = new MessageContact();
                     messageContact1.setStudent(student);
                     messageContact.setTeacher(teacher);
@@ -105,10 +173,11 @@ public class UserService {
                     message.setContent(content);
                     message.setStudentTheSender(false);
                     messages.add(message);
+                    messageRepo.save(message);
                     messageContact.setMessages(messages);
+                    messageContactRepo.save(messageContact);
                     student.saveMessage(messageContact);
                     teacher.saveMessage(messageContact);
-                    // TODO Web hooks
                 }
                 counter--;
             }
@@ -116,8 +185,8 @@ public class UserService {
     }
 
     public int verifyTeacher(String token, String name, String surname, Gender gender, City city,
-                              String description, String subjects, Degree degree, String school, String university,
-                              String specialty, ExperienceRequest[] experience) throws IOException, CustomException {
+                             String description, String subjects, Degree degree, String school, String university,
+                             String specialty, ExperienceRequest[] experience) throws IOException, CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         teacher.setFirstname(name);
         teacher.setLastname(surname);
@@ -225,17 +294,14 @@ public class UserService {
             if (teacher.isVerified()) {
                 return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
                         teacher.getRole().toString(), teacher.isVerified(), true);
-            }
-            else if (teacher.getTimeOfVerificationRequest() != null) {
+            } else if (teacher.getTimeOfVerificationRequest() != null) {
                 return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
                         teacher.getRole().toString(), false, true);
-            }
-            else {
+            } else {
                 return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
                         teacher.getRole().toString(), false, false);
             }
-        }
-        else {
+        } else {
             User user = userRepository.findUserByTokens_token(token.substring(7));
             return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(), true, true);
         }
@@ -253,9 +319,45 @@ public class UserService {
     }
 
 
-    public List<TimePair> getCalendar(String token) {
-        //TODO implement
-        return null;
+    public List<CalendarResponse> getCalendarStudent(String token) throws CustomException {
+        //TODO Add multiple dates for courses in the calendar
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        List<CalendarResponse> responses = new ArrayList<>();
+        for (CourseTermin courseTermin : student.getCourses()) {
+            Lesson lesson = courseTermin.getLesson();
+            CalendarResponse calendarResponse = new CalendarResponse(lesson.getTitle(), courseTermin.getDateTime().toString(),
+                    new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString());
+            responses.add(calendarResponse);
+        }
+        for (LessonTermin lessonTermin : student.getPrivateLessons()) {
+            Lesson lesson = lessonTermin.getLesson();
+            CalendarResponse calendarResponse = new CalendarResponse(lesson.getTitle(), lessonTermin.getDateTime().toString(),
+                    new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString());
+            responses.add(calendarResponse);
+        }
+        return responses;
+    }
+
+    public List<CalendarResponse> getCalendarTeacher(String token) throws CustomException {
+        //TODO Add multiple dates for courses in the calendar
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        List<CalendarResponse> responses = new ArrayList<>();
+        for (Lesson lesson : teacher.getLessons()) {
+            if (!lesson.isPrivateLesson()) {
+                for (CourseTermin courseTermin : lesson.getCourseTermins()) {
+                    CalendarResponse calendarResponse = new CalendarResponse(lesson.getTitle(), courseTermin.getDateTime().toString(),
+                            new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength()).toString());
+                    responses.add(calendarResponse);
+                }
+            } else {
+                for (LessonTermin lessonTermin : lesson.getLessonTermins()) {
+                    CalendarResponse calendarResponse = new CalendarResponse(lesson.getTitle(), lessonTermin.getDateTime().toString(),
+                            new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength()).toString());
+                    responses.add(calendarResponse);
+                }
+            }
+        }
+        return responses;
     }
 
     public PagedResponse getFavouriteTeachers(String token, int page) {

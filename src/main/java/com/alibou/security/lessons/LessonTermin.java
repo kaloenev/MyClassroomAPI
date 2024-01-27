@@ -19,7 +19,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Entity
 @SuperBuilder
-public class LessonTermin extends Termin{
+public class LessonTermin extends Termin {
     private int lessonHours;
     @OneToOne
     @JoinColumn(name = "thema_themaID")
