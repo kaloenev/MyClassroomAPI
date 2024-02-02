@@ -7,6 +7,7 @@ import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.lessons.*;
 import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
+import com.alibou.security.userFunctions.CalendarResponse;
 import com.alibou.security.userFunctions.UserProfileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -83,7 +84,7 @@ public class CourseService {
         studentRepository.save(student);
     }
 
-    public void enrollUserInLesson(String token, int courseID, int terminID) throws CustomException {
+    public void enrollUserInLesson(String token, int terminID) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         LessonTermin termin = lessonTerminRepo.getLessonTerminByTerminID(terminID);
         //TODO Check if payment is present
@@ -358,8 +359,8 @@ public class CourseService {
             }
         } else {
             if (lesson.isHasTermins()) {
-                for (CourseTermin termin : lesson.getCourseTermins()) {
-                    themaRepository.deleteAll(termin.getThemas());
+                for (LessonTermin termin : lesson.getLessonTermins()) {
+                    themaRepository.delete(termin.getThema());
                 }
             }
             lesson.setStudentsUpperBound(1);
@@ -377,7 +378,9 @@ public class CourseService {
                 thema.setLesson(lesson);
                 themaRepository.save(thema);
             }
-            lesson.setThemas(Collections.singletonList(thema));
+            List<Thema> themas = new ArrayList<>();
+            themas.add(thema);
+            lesson.setThemas(themas);
             if (courseRequest.getPrivateLessonTermins() != null && !courseRequest.getPrivateLessonTermins().isEmpty()) {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
                     for (TimePair timePair : privateLessonTermin.getLessonHours()) {
@@ -432,11 +435,15 @@ public class CourseService {
         return daysOfWeek.toString().substring(0, daysOfWeek.length() - 3);
     }
 
+    //TODO Maybe add separate checks for private lessons and courses
     private void checkForUnallowedChanges(Lesson lesson, CreateCourseRequest courseRequest) throws CustomException {
-        boolean violations = courseRequest.getCourseTerminRequests().isEmpty() && lesson.getTermins().isEmpty()
-                || (lesson.getTitle() == null || lesson.getTitle().isEmpty()) && (courseRequest.getTitle() == null || courseRequest.getTitle().isEmpty())
+        boolean violations = (courseRequest.getCourseTerminRequests() == null || courseRequest.getCourseTerminRequests().isEmpty())
+                && (courseRequest.getPrivateLessonTermins() == null || courseRequest.getPrivateLessonTermins().isEmpty())
+                && lesson.getTermins().isEmpty() || (lesson.getTitle() == null || lesson.getTitle().isEmpty())
+                && (courseRequest.getTitle() == null || courseRequest.getTitle().isEmpty())
 //                || !EnumUtils.isValidEnum(Subject.class, lesson.getSubject()) && !EnumUtils.isValidEnum(Subject.class, courseRequest.getSubject())
-                || (lesson.getDescription() == null || lesson.getDescription().isEmpty()) && (courseRequest.getDescription() == null || courseRequest.getDescription().isEmpty())
+                || (lesson.getDescription() == null || lesson.getDescription().isEmpty())
+                && (courseRequest.getDescription() == null || courseRequest.getDescription().isEmpty())
 //                || lesson.getImageLocation().isEmpty() && courseRequest.getImageLocation().isEmpty()
                 || lesson.getPrice() == 0 && courseRequest.getPrice() == 0;
         if (violations) throw new CustomException(HttpStatus.BAD_REQUEST, "Please use the interface to send requests");
@@ -795,11 +802,41 @@ public class CourseService {
             if (lesson.isHasTermins()) {
                 List<LessonTermin> lessonTermins = lesson.getLessonTermins();
                 List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
+                int dayOfMonth = -1;
+                int counter = 1;
+                int lessonTerminsSize = lessonTermins.size();
+                List<TimePair> timePairs = new ArrayList<>();
+                String lessonDate = lessonTermins.get(0).getDate();
                 for (LessonTermin lessonTermin : lessonTermins) {
+                    //TODO Maybe add a month check as well
+                    //TODO Maybe Iterator would be faster
+                    int currentDayOfMonth = lessonTermin.getDateTime().toLocalDateTime().getDayOfMonth();
                     Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                             + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
-                    lessonTerminResponses.add(new LessonTerminResponse(lessonTermin.getTerminID(), lessonTermin.getDate(),
-                            lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)));
+                    TimePair timePair = new TimePair(lessonTermin.getTerminID(),
+                            lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16), lessonTermin.isFull());
+
+                    if ((dayOfMonth == -1 || currentDayOfMonth == dayOfMonth) && counter != lessonTerminsSize) {
+                        timePairs.add(timePair);
+                        dayOfMonth = currentDayOfMonth;
+                    } else if (currentDayOfMonth != dayOfMonth) {
+                        LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate)
+                                .times(timePairs).build();
+                        timePairs = new ArrayList<>();
+                        dayOfMonth = currentDayOfMonth;
+                        lessonTerminResponses.add(lessonTerminResponse);
+                        timePairs.add(timePair);
+                    }
+                    lessonDate = lessonTermin.getDate();
+                    if (counter == lessonTerminsSize) {
+                        if (!timePairs.contains(timePair)) {
+                            timePairs.add(timePair);
+                        }
+                        LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate)
+                                .times(timePairs).build();
+                        lessonTerminResponses.add(lessonTerminResponse);
+                    }
+                    counter++;
                 }
                 lessonResponse = new LessonResponse(lesson, lessonTerminResponses, null, thema);
                 lessonResponse.setTeacherResponse(null);
@@ -894,8 +931,8 @@ public class CourseService {
             Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                     + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
             classroomPageResponse = ClassroomPageResponse.builder().lessonTitle(lesson.getTitle())
-                    .lessonDescription(lesson.getDescription()).courseHours(lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)
-                    ).startDate(lessonTermin.getDate()).teacherId(teacher.getId())
+                    .lessonDescription(lesson.getDescription()).courseHours(lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16))
+                    .startDate(lessonTermin.getDate()).teacherId(teacher.getId())
                     .themas(themas).courseTerminId(lessonTermin.getTerminID())
                     .enrolledStudents(1).students(students).teacherName(teacherName).build();
         } else {
@@ -1214,7 +1251,7 @@ public class CourseService {
                         lessonResponses.add(lessonResponse);
                         break;
                     case "Active":
-                        if (lesson.isHasTermins()) fillLessonResponseList(lessonResponses, lesson, "Active");
+                        if (lesson.isHasTermins() && !lesson.isDraft()) fillLessonResponseList(lessonResponses, lesson, "Active");
                         break;
                     default:
                         throw new CustomException(HttpStatus.BAD_REQUEST, "Моля изберете някой от предложените статуси през интерфейса");
@@ -1359,27 +1396,40 @@ public class CourseService {
         if (teacher == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         List<LessonTermin> lessonTermins = lessonTerminRepo.getLessonTerminsByLessonID(lessonId);
-        List<LessonTerminResponse> lessonResponses = new ArrayList<>();
+        List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
         int dayOfMonth = -1;
         int counter = 1;
         int lessonTerminsSize = lessonTermins.size();
         List<TimePair> timePairs = new ArrayList<>();
+        String lessonDate = lessonTermins.get(0).getDate();
         for (LessonTermin lessonTermin : lessonTermins) {
+            //TODO Maybe add a month check as well
             int currentDayOfMonth = lessonTermin.getDateTime().toLocalDateTime().getDayOfMonth();
             TimePair timePair = new TimePair(lessonTermin.getTerminID(), lessonTermin.getTime(), lessonTermin.isFull());
-            timePairs.add(timePair);
-            if (dayOfMonth != -1 && currentDayOfMonth != dayOfMonth && counter != lessonTerminsSize) {
+            if ((dayOfMonth == -1 || currentDayOfMonth == dayOfMonth) && counter != lessonTerminsSize) {
+                timePairs.add(timePair);
                 dayOfMonth = currentDayOfMonth;
-            } else if (currentDayOfMonth != dayOfMonth || counter == lessonTerminsSize) {
-                LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonTermin.getDate()).times(timePairs)
-                        .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().toString()).status(lessonTermin.getLessonStatus().toString()).build();
+            } else if (currentDayOfMonth != dayOfMonth) {
+                LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate).times(timePairs)
+                        .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().toString())
+                        .status(lessonTermin.getLessonStatus().toString()).build();
                 timePairs = new ArrayList<>();
                 dayOfMonth = currentDayOfMonth;
-                lessonResponses.add(lessonTerminResponse);
+                lessonTerminResponses.add(lessonTerminResponse);
+                timePairs.add(timePair);
+            }
+            lessonDate = lessonTermin.getDate();
+            if (counter == lessonTerminsSize) {
+                if (!timePairs.contains(timePair)) {
+                    timePairs.add(timePair);
+                }
+                LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate)
+                        .times(timePairs).build();
+                lessonTerminResponses.add(lessonTerminResponse);
             }
             counter++;
         }
-        return lessonResponses;
+        return lessonTerminResponses;
     }
 
     public PagedResponse getLessonReviews(int lessonId, String sort, int pageNumber) throws ClassCastException {
@@ -1515,6 +1565,93 @@ public class CourseService {
             assignmentResponse.setStatus("Not submitted");
         }
         return assignmentResponse;
+    }
+
+    public List<CalendarResponse> getEventsForTheDayTeacher(String token, String date) throws CustomException {
+        //TODO Add multiple dates for courses in the calendar
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        String lowerBound = date + " 00:00:00";
+        String upperBound = date + " 23:59:59";
+        List<CalendarResponse> responses = new ArrayList<>();
+        for (Lesson lesson : teacher.getLessons()) {
+            if (lesson.isDraft()) continue;
+            if (!lesson.isPrivateLesson()) {
+                for (CourseTermin courseTermin : courseTerminRepo.getLessonTerminsByDateAndTeacherID(teacher.getId(), lowerBound, upperBound)) {
+                    CalendarResponse calendarResponse;
+                    if (courseTermin.isEmpty()) {
+                        calendarResponse = CalendarResponse.builder().title(lesson.getTitle())
+                                .startDate(courseTermin.getDate()).startTime(courseTermin.getTime())
+                                .start(courseTermin.getDateTime().toString())
+                                .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L)
+                                        .toString().substring(11, 15))
+                                .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
+                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    } else {
+                        calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("hasStudents")
+                                .startDate(courseTermin.getDate()).startTime(courseTermin.getTime())
+                                .start(courseTermin.getDateTime().toString())
+                                .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L)
+                                        .toString().substring(11, 15))
+                                .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
+                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    }
+                    responses.add(calendarResponse);
+                }
+            } else {
+                for (LessonTermin lessonTermin : lessonTerminRepo.getLessonTerminsByDateAndTeacherID(teacher.getId(), lowerBound, upperBound)) {
+                    CalendarResponse calendarResponse;
+                    if (lessonTermin.isEmpty()) {
+                        calendarResponse = CalendarResponse.builder().title(lesson.getTitle())
+                                .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
+                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                                .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
+                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    } else {
+                        calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("hasStudents")
+                                .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
+                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                                .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
+                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    }
+                    responses.add(calendarResponse);
+                }
+            }
+        }
+        return responses;
+    }
+
+    public List<CalendarResponse> getEventsForTheDayStudent(String token, String date) throws CustomException {
+        //TODO Add multiple dates for courses in the calendar
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        String lowerBound = date + " 00:00:00";
+        String upperBound = date + " 23:59:59";
+        List<CalendarResponse> responses = new ArrayList<>();
+        for (CourseTermin courseTermin : courseTerminRepo.getCourseTerminsByDateAndEnrolledStudentID(student.getId(), lowerBound, upperBound)) {
+            Lesson lesson = courseTermin.getLesson();
+            CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("course")
+                    .startDate(courseTermin.getDate()).startTime(courseTermin.getTime()).start(courseTermin.getDateTime().toString())
+                    .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                    .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
+                    .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+            responses.add(calendarResponse);
+        }
+        for (LessonTermin lessonTermin : lessonTerminRepo.getLessonTerminsByDateAndEnrolledStudentID(student.getId(), lowerBound, upperBound)) {
+            Lesson lesson = lessonTermin.getLesson();
+            CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("privateLesson")
+                    .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
+                    .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                    .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
+                    .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+            responses.add(calendarResponse);
+        }
+        for (Assignment assignment : assignmentRepo.getAssignmentsByDateAndEnrolledStudentID(student.getId(), lowerBound, upperBound)) {
+            CalendarResponse calendarResponse = CalendarResponse.builder().title(assignment.getTitle()).className("assignment")
+                    .startDate(assignment.getDate()).startTime(assignment.getTime()).start(assignment.getDueDateTime().toString())
+                    .endTime(assignment.getTime()).end(assignment.getDueDateTime().toString())
+                    .dayOfTheWeek(assignment.getDueDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+            responses.add(calendarResponse);
+        }
+        return responses;
     }
 
     public void getAssignmentFiles(String token, int id, String requestedFile) throws CustomException {

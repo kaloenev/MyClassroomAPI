@@ -156,6 +156,28 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getTeacherCalendarEvents/{date}")
+    public ResponseEntity<Object> getTeacherCalendarEvents(HttpServletRequest httpRequest, @PathVariable String date) {
+        try {
+            return ResponseEntity.ok(courseService.getEventsForTheDayTeacher(httpRequest.getHeader("Authorization"), date));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getStudentCalendarEvents/{date}")
+    public ResponseEntity<Object> getStudentCalendarEvents(HttpServletRequest httpRequest, @PathVariable String date) {
+        try {
+            return ResponseEntity.ok(courseService.getEventsForTheDayStudent(httpRequest.getHeader("Authorization"), date));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @PostMapping("/editThemaDescription/{id}")
     public ResponseEntity<Object> editThemaDescription(@PathVariable int id, @RequestBody ThemaRequest themaRequest,
                                                        HttpServletRequest httpRequest) {
@@ -697,6 +719,17 @@ public class CourseController {
     public ResponseEntity<Object> enrollStudentInCourse(HttpServletRequest httpServletRequest, @PathVariable int id) {
         try {
             courseService.enrollUserInCourse(httpServletRequest.getHeader("Authorization"), id);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/enrollStudentInLesson/{id}")
+    public ResponseEntity<Object> enrollStudentInLesson(HttpServletRequest httpServletRequest, @PathVariable int id) {
+        try {
+            courseService.enrollUserInLesson(httpServletRequest.getHeader("Authorization"), id);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

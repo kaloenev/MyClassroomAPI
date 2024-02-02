@@ -24,6 +24,20 @@ public interface CourseTerminRepo extends JpaRepository<CourseTermin, Integer> {
     List<CourseTermin> getCourseTerminsByEnrolledStudents_idAndLessonStatus(@Param("studentId") int studentId,
                                                                             @Param("lessonStatus") LessonStatus lessonStatus);
 
+    @Query("""
+            select c from CourseTermin c
+            where c.lesson.teacher.id = :teacherId and c.dateTime between :lowerBound and :upperBound""")
+    List<CourseTermin> getLessonTerminsByDateAndTeacherID(@Param("teacherId") int teacherId,
+                                                          @Param("lowerBound") String lowerBound,
+                                                          @Param("upperBound") String upperBound);
+
+    @Query("""
+            select c from CourseTermin c inner join c.enrolledStudents enrolledStudents
+            where enrolledStudents.id = :studentId and c.dateTime between :lowerBound and :upperBound""")
+    List<CourseTermin> getCourseTerminsByDateAndEnrolledStudentID(@Param("studentId") int studentId,
+                                                                  @Param("lowerBound") String lowerBound,
+                                                                  @Param("upperBound") String upperBound);
+
 
     @Query("""
             select c.lesson from CourseTermin c

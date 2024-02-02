@@ -63,6 +63,8 @@ public class User implements UserDetails {
     @ToString.Exclude
     protected List<Notification> notifications;
 
+    private String notificationModev2;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return role.getAuthorities();

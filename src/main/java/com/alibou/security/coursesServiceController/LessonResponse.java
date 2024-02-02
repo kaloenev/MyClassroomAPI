@@ -85,6 +85,7 @@ public class LessonResponse {
         teacherId = teacher.getId();
         this.numberOfStudents = numberOfStudents;
         this.privateLesson = lesson.isPrivateLesson();
+        this.isDraft = lesson.isDraft();
     }
 
     public LessonResponse(Lesson lesson, List<ReviewResponse> reviews) throws CustomException {

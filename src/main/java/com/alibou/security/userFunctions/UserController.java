@@ -59,9 +59,20 @@ public class UserController {
     }
 
     @GetMapping("/getMessages")
-    public ResponseEntity<Object> getMessages(HttpServletRequest httpRequest) {
+    public ResponseEntity<Object> getContacts(HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(userService.getContacts(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getMessage/{id}")
+    public ResponseEntity<Object> getMessages(HttpServletRequest httpRequest, @PathVariable int id) {
+        try {
+            return ResponseEntity.ok(userService.getMessages(httpRequest.getHeader("Authorization"), id));
         } catch (CustomException e) {
             e.printStackTrace();
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
@@ -89,6 +100,31 @@ public class UserController {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
+    }
+
+    @GetMapping("/getStudentProfile")
+    public ResponseEntity<Object> getStudentProfile(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(userService.getStudentProfile(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @PostMapping("/editStudentProfile")
+    public ResponseEntity<Object> editStudentProfile(@RequestBody StudentProfileRequest request,
+                                                HttpServletRequest httpRequest) {
+        try {
+            userService.editStudentProfile(request, httpRequest.getHeader("Authorization"));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/verifyTeacher/form")

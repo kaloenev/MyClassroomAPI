@@ -10,5 +10,11 @@ import lombok.*;
 public class CalendarResponse {
     private String title;
     private String start;
+    private String startDate;
+    private String startTime;
+    private String endTime;
+    private String dayOfTheWeek;
     private String end;
+    private String enrolledStudents;
+    private String className;
 }

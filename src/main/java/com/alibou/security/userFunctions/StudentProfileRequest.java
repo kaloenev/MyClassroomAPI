@@ -9,16 +9,15 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfileResponse {
+public class StudentProfileRequest {
     private int id;
-
-    public UserProfileResponse(int id, String name, String surname) {
-        this.id = id;
-        this.name = name;
-        this.surname = surname;
-    }
-
     private String name;
     private String surname;
+    private String gender;
     private String imageLocation;
+    private boolean clientService;
+    private boolean marketingService;
+    private boolean reminders;
+    private boolean chatNotifications;
+    private boolean savedCoursesNotifications;
 }
