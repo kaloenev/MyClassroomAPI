@@ -3,7 +3,6 @@ package com.alibou.security.coursesServiceController;
 
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.exceptionHandling.CustomWarning;
-import com.alibou.security.lessons.LessonStatus;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -14,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -334,35 +332,30 @@ public class CourseController {
     }
 
     @PostMapping("/uploadAssignmentFiles/{id}")
-    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
+    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile file,
                                                         HttpServletRequest httpRequest) {
         System.out.println("Reached controller");
-        //TODO Check if the person is using this only for a new Assignment (more than 4 files risk)
-        if (requestFiles.length > 4) {
-            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
-            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-        }
+        //TODO Check if the person is using this only for a new Assignment (more than 1 files risk)
+
         String paths;
         StringBuilder pathBuilder = new StringBuilder();
-        for (MultipartFile requestFile : requestFiles) {
             Path newFile;
             newFile = Paths.get("Assignment_" + random.nextInt(Integer.MAX_VALUE) + "_"
-                    + filenameCounter + "_" + requestFile.getOriginalFilename());
+                    + filenameCounter + "_" + file.getOriginalFilename());
             filenameCounter++;
             try {
-                Files.copy(requestFile.getInputStream(), newFile);
+                Files.copy(file.getInputStream(), newFile);
             } catch (IOException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
             }
-            pathBuilder.append(newFile).append(",");
-        }
+            pathBuilder.append(newFile);
         System.out.println("Saved files");
         if (pathBuilder.isEmpty()) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-        paths = pathBuilder.substring(0, pathBuilder.length() - 1);
+        paths = pathBuilder.toString();
         try {
             courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
         } catch (CustomException e) {

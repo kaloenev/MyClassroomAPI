@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -1501,6 +1502,7 @@ public class CourseService {
 //        }
     }
 
+    //TODO Fix file upload (only 1 file available now)
     public String uploadAssignmentFiles(String token, int id, String paths) throws CustomException {
         System.out.println("Reached service");
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
@@ -1570,8 +1572,8 @@ public class CourseService {
     public List<CalendarResponse> getEventsForTheDayTeacher(String token, String date) throws CustomException {
         //TODO Add multiple dates for courses in the calendar
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        String lowerBound = date + " 00:00:00";
-        String upperBound = date + " 23:59:59";
+        Timestamp lowerBound = Timestamp.valueOf(date + " 00:00:00");
+        Timestamp upperBound = Timestamp.valueOf(date + " 23:59:59");
         List<CalendarResponse> responses = new ArrayList<>();
         for (Lesson lesson : teacher.getLessons()) {
             if (lesson.isDraft()) continue;
@@ -1623,8 +1625,8 @@ public class CourseService {
     public List<CalendarResponse> getEventsForTheDayStudent(String token, String date) throws CustomException {
         //TODO Add multiple dates for courses in the calendar
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
-        String lowerBound = date + " 00:00:00";
-        String upperBound = date + " 23:59:59";
+        Timestamp lowerBound = Timestamp.valueOf(date + " 00:00:00");
+        Timestamp upperBound = Timestamp.valueOf(date + " 23:59:59");
         List<CalendarResponse> responses = new ArrayList<>();
         for (CourseTermin courseTermin : courseTerminRepo.getCourseTerminsByDateAndEnrolledStudentID(student.getId(), lowerBound, upperBound)) {
             Lesson lesson = courseTermin.getLesson();

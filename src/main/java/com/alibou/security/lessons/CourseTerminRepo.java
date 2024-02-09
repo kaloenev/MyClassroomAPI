@@ -20,23 +20,23 @@ public interface CourseTerminRepo extends JpaRepository<CourseTermin, Integer> {
 
     @Query("""
             select c from CourseTermin c inner join c.enrolledStudents enrolledStudents
-            where enrolledStudents.id = :studentId and c.lessonStatus = :lessonStatus""")
+            where enrolledStudents.id = :studentId and c.lessonStatus = :lessonStatus and c.lesson.isDraft = false""")
     List<CourseTermin> getCourseTerminsByEnrolledStudents_idAndLessonStatus(@Param("studentId") int studentId,
                                                                             @Param("lessonStatus") LessonStatus lessonStatus);
 
     @Query("""
             select c from CourseTermin c
-            where c.lesson.teacher.id = :teacherId and c.dateTime between :lowerBound and :upperBound""")
+            where c.lesson.teacher.id = :teacherId and c.dateTime between :lowerBound and :upperBound and c.lesson.isDraft = false""")
     List<CourseTermin> getLessonTerminsByDateAndTeacherID(@Param("teacherId") int teacherId,
-                                                          @Param("lowerBound") String lowerBound,
-                                                          @Param("upperBound") String upperBound);
+                                                          @Param("lowerBound") Timestamp lowerBound,
+                                                          @Param("upperBound") Timestamp upperBound);
 
     @Query("""
             select c from CourseTermin c inner join c.enrolledStudents enrolledStudents
-            where enrolledStudents.id = :studentId and c.dateTime between :lowerBound and :upperBound""")
+            where enrolledStudents.id = :studentId and c.dateTime between :lowerBound and :upperBound and c.lesson.isDraft = false""")
     List<CourseTermin> getCourseTerminsByDateAndEnrolledStudentID(@Param("studentId") int studentId,
-                                                                  @Param("lowerBound") String lowerBound,
-                                                                  @Param("upperBound") String upperBound);
+                                                                  @Param("lowerBound") Timestamp lowerBound,
+                                                                  @Param("upperBound") Timestamp upperBound);
 
 
     @Query("""

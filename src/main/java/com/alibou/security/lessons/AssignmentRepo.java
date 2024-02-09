@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 public interface AssignmentRepo extends JpaRepository<Assignment, Integer> {
@@ -23,6 +24,6 @@ public interface AssignmentRepo extends JpaRepository<Assignment, Integer> {
             select c from Assignment c inner join c.students enrolledStudents
             where enrolledStudents.id = :studentId and c.dueDateTime between :lowerBound and :upperBound""")
     List<Assignment> getAssignmentsByDateAndEnrolledStudentID(@Param("studentId") int studentId,
-                                                                  @Param("lowerBound") String lowerBound,
-                                                                  @Param("upperBound") String upperBound);
+                                                                  @Param("lowerBound") Timestamp lowerBound,
+                                                                  @Param("upperBound") Timestamp upperBound);
 }

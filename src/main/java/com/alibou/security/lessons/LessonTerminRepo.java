@@ -24,17 +24,17 @@ public interface LessonTerminRepo extends JpaRepository<LessonTermin, Integer> {
 
     @Query("""
             select c from LessonTermin c
-            where c.student.id = :studentId and c.dateTime between :lowerBound and :upperBound""")
+            where c.student.id = :studentId and c.dateTime between :lowerBound and :upperBound and c.lesson.isDraft = false""")
     List<LessonTermin> getLessonTerminsByDateAndEnrolledStudentID(@Param("studentId") int studentId,
-                                                                  @Param("lowerBound") String lowerBound,
-                                                                  @Param("upperBound") String upperBound);
+                                                                  @Param("lowerBound") Timestamp lowerBound,
+                                                                  @Param("upperBound") Timestamp upperBound);
 
     @Query("""
             select c from LessonTermin c
-            where c.lesson.teacher.id = :teacherId and c.dateTime between :lowerBound and :upperBound""")
+            where c.lesson.teacher.id = :teacherId and c.dateTime between :lowerBound and :upperBound and c.lesson.isDraft = false""")
     List<LessonTermin> getLessonTerminsByDateAndTeacherID(@Param("teacherId") int teacherId,
-                                                                  @Param("lowerBound") String lowerBound,
-                                                                  @Param("upperBound") String upperBound);
+                                                                  @Param("lowerBound") Timestamp lowerBound,
+                                                                  @Param("upperBound") Timestamp upperBound);
 
     @Query("""
             select c.lesson from LessonTermin c

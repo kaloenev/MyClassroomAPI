@@ -24,10 +24,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setUserDestinationPrefix("/user");
     }
 
+    //TODO How secure is this? Maybe add Principal and handshake handler for authentication
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .withSockJS();
+//                .withSockJS()
+        ;
     }
 
     @Override
