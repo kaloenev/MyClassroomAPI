@@ -17,4 +17,6 @@ public class CalendarResponse {
     private String end;
     private String enrolledStudents;
     private String className;
+    private String type;
+    private String themaTitle;
 }

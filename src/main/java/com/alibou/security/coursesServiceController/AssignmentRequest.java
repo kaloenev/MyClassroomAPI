@@ -15,7 +15,7 @@ public class AssignmentRequest {
     private String studentName;
     private String teacherName;
     private String description;
-    private String[] fileNames;
+    private String fileNames;
     private String date;
     private String time;
     private String status;

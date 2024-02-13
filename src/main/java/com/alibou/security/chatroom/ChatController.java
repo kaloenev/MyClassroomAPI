@@ -34,7 +34,7 @@ public class ChatController {
                             chatMessage.getRecipientId(),
                             chatMessage.getContent(),
                             dateTime.substring(5, 9).replace("-", "."),
-                            dateTime.substring(11, 15)
+                            dateTime.substring(11, 16)
                     )
             );
         } catch (CustomException ignored) {

@@ -245,6 +245,7 @@ public class UserService {
         teacherRepository.save(teacher);
     }
 
+    //TODO Maybe unneeded (delete)
     public void saveStudentImage(String token, String fileName) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         if (student == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
@@ -345,6 +346,7 @@ public class UserService {
                 + request.isReminders() + request.isChatNotifications() + request.isSavedCoursesNotifications();
         student.setNotificationModev2(notifications);
         student.setPictureLocation(request.getImageLocation());
+        studentRepository.save(student);
     }
 
     public StudentProfileResponse getStudentProfile(String token) throws CustomException {
@@ -354,7 +356,8 @@ public class UserService {
         String name = "";
         String surname = "";
         String gender = "";
-        if (student.getPictureLocation() != null) pictureLocation = student.getPictureLocation();
+        if (student.getPictureLocation() != null) pictureLocation = "http://localhost:8080/api/v1/users/images/"
+                + student.getPictureLocation();
         if (student.getNotificationModev2() != null) notifications = student.getNotificationModev2().split(",");
         if (student.getGender() != null) gender = student.getGender().toString();
         if (student.getFirstname() != null) name = student.getFirstname();
@@ -369,29 +372,28 @@ public class UserService {
         //TODO Add multiple dates for courses in the calendar
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<CalendarResponse> responses = new ArrayList<>();
-        for (CourseTermin courseTermin : student.getCourses()) {
+        List<CourseTermin> courseTermins = student.getCourses();
+        List<LessonTermin> lessonTermins = student.getPrivateLessons();
+        for (CourseTermin courseTermin : courseTermins) {
             Lesson lesson = courseTermin.getLesson();
             CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("course")
-                    .startDate(courseTermin.getDate()).startTime(courseTermin.getTime()).start(courseTermin.getDateTime().toString())
-                    .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
-                    .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                    .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    .start(courseTermin.getDateTime().toString().replace(" ", "T").replace(".0", ""))
+                    .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString()
+                            .replace(" ", "T").replace(".0", "")).build();
             responses.add(calendarResponse);
         }
-        for (LessonTermin lessonTermin : student.getPrivateLessons()) {
+        for (LessonTermin lessonTermin : lessonTermins) {
             Lesson lesson = lessonTermin.getLesson();
             CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("privateLesson")
-                    .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
-                    .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
-                    .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                    .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    .start(lessonTermin.getDateTime().toString().replace(" ", "T").replace(".0", ""))
+                    .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString()
+                            .replace(" ", "T").replace(".0", "")).build();
             responses.add(calendarResponse);
         }
         for (Assignment assignment : student.getAssignments()) {
             CalendarResponse calendarResponse = CalendarResponse.builder().title(assignment.getTitle()).className("assignment")
-                    .startDate(assignment.getDate()).startTime(assignment.getTime()).start(assignment.getDueDateTime().toString())
-                    .endTime(assignment.getTime()).end(assignment.getDueDateTime().toString())
-                    .dayOfTheWeek(assignment.getDueDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    .start(assignment.getDueDateTime().toString().replace(" ", "T").replace(".0", ""))
+                            .build();
             responses.add(calendarResponse);
         }
         return responses;
@@ -416,13 +418,9 @@ public class UserService {
                         if (counter != 1) responses.add(calendarResponse);
                         dateHasStudents = null;
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className(dateHasStudents)
-                                .startDate(courseTermin.getDate()).startTime(courseTermin.getTime())
-                                .start(courseTermin.getDateTime().toString())
-                                .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L)
-                                        .toString().substring(11, 15))
-                                .enrolledStudents(String.valueOf(courseTermin.getStudentsUpperBound() - courseTermin.getPlacesRemaining()))
-                                .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .start(courseTermin.getDateTime().toString().replace(" ", "T").replace(".0", ""))
+                                .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString()
+                                        .replace(" ", "T").replace(".0", "")).build();
                     }
                     if (!courseTermin.isEmpty()) {
                         dateHasStudents = "hasStudents";
@@ -432,13 +430,9 @@ public class UserService {
                     }
                     if (counter == courseTermins.size()) {
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className(dateHasStudents)
-                                .startDate(courseTermin.getDate()).startTime(courseTermin.getTime())
-                                .start(courseTermin.getDateTime().toString())
-                                .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L)
-                                        .toString().substring(11, 15))
-                                .enrolledStudents(String.valueOf(courseTermin.getStudentsUpperBound() - courseTermin.getPlacesRemaining()))
-                                .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .start(courseTermin.getDateTime().toString().replace(" ", "T").replace(".0", ""))
+                                .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString()
+                                        .replace(" ", "T").replace(".0", "")).build();
                         responses.add(calendarResponse);
                     }
                     counter++;
@@ -457,11 +451,9 @@ public class UserService {
                         dateHasStudents = null;
                         numberOfStudents = "0";
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className(dateHasStudents)
-                                .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
-                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
-                                .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .enrolledStudents(numberOfStudents)
-                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .start(lessonTermin.getDateTime().toString().replace(" ", "T").replace(".0", ""))
+                                .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString()
+                                        .replace(" ", "T").replace(".0", "")).build();
                     }
                     if (lessonTermin.isEmpty()) {
                         dateHasStudents = "hasStudents";
@@ -473,11 +465,9 @@ public class UserService {
                     }
                     if (counter == lessonTermins.size()) {
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className(dateHasStudents)
-                                .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
-                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
-                                .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .enrolledStudents(numberOfStudents)
-                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .start(lessonTermin.getDateTime().toString().replace(" ", "T").replace(".0", ""))
+                                .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString()
+                                        .replace(" ", "T").replace(".0", "")).build();
                         responses.add(calendarResponse);
                     }
                     counter++;

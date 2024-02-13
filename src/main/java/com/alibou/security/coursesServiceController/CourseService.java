@@ -2,7 +2,6 @@ package com.alibou.security.coursesServiceController;
 
 import com.alibou.security.emailing.EmailDetails;
 import com.alibou.security.emailing.EmailService;
-import com.alibou.security.emailing.EmailServiceImpl;
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.lessons.*;
 import com.alibou.security.token.TokenRepository;
@@ -17,7 +16,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -1353,6 +1351,7 @@ public class CourseService {
         if (teacher == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
+        if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена тема с това id");
         String oldFilename = thema.getPresentation();
         thema.setPresentation(filename);
         themaRepository.save(thema);
@@ -1398,6 +1397,7 @@ public class CourseService {
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         List<LessonTermin> lessonTermins = lessonTerminRepo.getLessonTerminsByLessonID(lessonId);
         List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
+        if (lessonTermins.isEmpty()) return lessonTerminResponses;
         int dayOfMonth = -1;
         int counter = 1;
         int lessonTerminsSize = lessonTermins.size();
@@ -1462,7 +1462,7 @@ public class CourseService {
         Assignment assignment;
         if (courseTermin != null) {
             students = courseTermin.getEnrolledStudents();
-            assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
+            assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle()).assignmentLocation(assignmentRequest.getFileNames())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
                             + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
@@ -1470,7 +1470,7 @@ public class CourseService {
         } else {
             LessonTermin lessonTermin = thema.getLessonTermin();
             students.add(lessonTermin.getStudent());
-            assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle())
+            assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle()).assignmentLocation(assignmentRequest.getFileNames())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
                             + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
             assignmentRepo.save(assignment);
@@ -1495,6 +1495,7 @@ public class CourseService {
         assignment.setTitle(assignmentRequest.getTitle());
         assignment.setDescription(assignmentRequest.getDescription());
         assignment.setDueDateTime(Timestamp.valueOf(assignmentRequest.getDate() + " " + assignmentRequest.getTime() + ":00"));
+        assignment.setAssignmentLocation(assignmentRequest.getFileNames());
         assignmentRepo.save(assignment);
 //        for (Student student : students) {
 //            student.addAssignment(assignment);
@@ -1502,20 +1503,36 @@ public class CourseService {
 //        }
     }
 
-    //TODO Fix file upload (only 1 file available now)
-    public String uploadAssignmentFiles(String token, int id, String paths) throws CustomException {
+
+    public String deleteAssignmentFiles(String token, int id, String paths) throws CustomException {
         System.out.println("Reached service");
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
-        String unneededPaths = "";
-        unneededPaths += assignment.getAssignmentLocation();
-        unneededPaths = unneededPaths.replace(paths, "");
+        String unneededPaths = assignment.getAssignmentLocation();
         assignment.setAssignmentLocation(paths);
         assignmentRepo.save(assignment);
         return unneededPaths;
+    }
+
+    public String deleteAssignment(String token, int id) throws CustomException {
+        System.out.println("Reached service");
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
+        if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
+        List<Solution> solutions = assignment.getSolutions();
+        for (Solution solution : solutions) {
+            commentRepo.deleteAll(solution.getComments());
+        }
+        solutionRepo.deleteAll(solutions);
+        String assignmentFile = assignment.getAssignmentLocation();
+        assignmentRepo.delete(assignment);
+        return assignmentFile;
+        //TODO Check if removing this from the students is needed
     }
 
     public AssignmentResponse getAssignment(String token, int id) throws CustomException {
@@ -1524,10 +1541,9 @@ public class CourseService {
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
-        String[] files = assignment.getAssignmentLocation().split(",");
-        return AssignmentResponse.builder().title(assignment.getTitle())
+        return AssignmentResponse.builder().title(assignment.getTitle()).id(assignment.getAssignmentID())
                 .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
-                .fileNames(files).build();
+                .fileNames(assignment.getAssignmentLocation()).build();
     }
 
     public AssignmentResponse getAssignmentStudent(String token, int id) throws CustomException {
@@ -1544,12 +1560,11 @@ public class CourseService {
                 studentSolution = solution;
             }
         }
-        String[] files = assignment.getAssignmentLocation().split(",");
         AssignmentResponse assignmentResponse = AssignmentResponse.builder().title(assignment.getTitle())
                 .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
-                .fileNames(files).build();
+                .fileNames(assignment.getAssignmentLocation()).build();
         if (studentSolution != null) {
-            assignmentResponse.setSolutionFileNames(studentSolution.getSolutionFilesLocation().split(","));
+            assignmentResponse.setSolutionFileNames(studentSolution.getSolutionFilesLocation());
             List<AssignmentResponse> comments = new ArrayList<>();
             for (Comment comment : studentSolution.getComments()) {
                 Teacher teacher = assignment.getTeacher();
@@ -1585,17 +1600,21 @@ public class CourseService {
                                 .startDate(courseTermin.getDate()).startTime(courseTermin.getTime())
                                 .start(courseTermin.getDateTime().toString())
                                 .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L)
-                                        .toString().substring(11, 15))
+                                        .toString().substring(11, 16)).type("курс")
                                 .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name())
+                                //TODO Change themas
+                                .themaTitle(courseTermin.getThemas().get(0).getTitle()).enrolledStudents("0").build();
                     } else {
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("hasStudents")
                                 .startDate(courseTermin.getDate()).startTime(courseTermin.getTime())
                                 .start(courseTermin.getDateTime().toString())
                                 .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L)
-                                        .toString().substring(11, 15))
+                                        .toString().substring(11, 16)).type("курс")
                                 .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name())
+                                .enrolledStudents(String.valueOf(courseTermin.getStudentsUpperBound() - courseTermin.getPlacesRemaining()))
+                                .themaTitle(courseTermin.getThemas().get(0).getTitle()).build();
                     }
                     responses.add(calendarResponse);
                 }
@@ -1605,15 +1624,17 @@ public class CourseService {
                     if (lessonTermin.isEmpty()) {
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle())
                                 .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
-                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16))
                                 .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name())
+                                .themaTitle(lessonTermin.getThema().getTitle()).type("урок").enrolledStudents("0").build();
                     } else {
                         calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("hasStudents")
                                 .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
-                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                                .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16))
                                 .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                                .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name())
+                                .themaTitle(lessonTermin.getThema().getTitle()).type("урок").enrolledStudents("1").build();
                     }
                     responses.add(calendarResponse);
                 }
@@ -1632,25 +1653,28 @@ public class CourseService {
             Lesson lesson = courseTermin.getLesson();
             CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("course")
                     .startDate(courseTermin.getDate()).startTime(courseTermin.getTime()).start(courseTermin.getDateTime().toString())
-                    .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                    .endTime(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16))
                     .end(new Timestamp(courseTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                    .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    .dayOfTheWeek(courseTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).type("курс")
+                    .themaTitle(courseTermin.getThemas().get(0).getTitle()).build();
             responses.add(calendarResponse);
         }
         for (LessonTermin lessonTermin : lessonTerminRepo.getLessonTerminsByDateAndEnrolledStudentID(student.getId(), lowerBound, upperBound)) {
             Lesson lesson = lessonTermin.getLesson();
             CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("privateLesson")
                     .startDate(lessonTermin.getDate()).startTime(lessonTermin.getTime()).start(lessonTermin.getDateTime().toString())
-                    .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 15))
+                    .endTime(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16))
                     .end(new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString())
-                    .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().name()).type("урок")
+                    .themaTitle(lessonTermin.getThema().getTitle()).build();
             responses.add(calendarResponse);
         }
         for (Assignment assignment : assignmentRepo.getAssignmentsByDateAndEnrolledStudentID(student.getId(), lowerBound, upperBound)) {
             CalendarResponse calendarResponse = CalendarResponse.builder().title(assignment.getTitle()).className("assignment")
                     .startDate(assignment.getDate()).startTime(assignment.getTime()).start(assignment.getDueDateTime().toString())
                     .endTime(assignment.getTime()).end(assignment.getDueDateTime().toString())
-                    .dayOfTheWeek(assignment.getDueDateTime().toLocalDateTime().getDayOfWeek().name()).build();
+                    .dayOfTheWeek(assignment.getDueDateTime().toLocalDateTime().getDayOfWeek().name()).type("домашно")
+                    .themaTitle(assignment.getThema().getTitle()).build();
             responses.add(calendarResponse);
         }
         return responses;
@@ -1667,54 +1691,51 @@ public class CourseService {
         }
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
-        if (assignment.getAssignmentLocation() == null)
-            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
-        String[] assignmentFiles = assignment.getAssignmentLocation().split(",");
-        boolean hasFile = false;
-        for (String assignmentFile : assignmentFiles) {
-            if (Objects.equals(assignmentFile, requestedFile)) {
-                hasFile = true;
-                break;
-            }
-        }
-        if (!hasFile) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
+        if (assignment.getAssignmentLocation() == null) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
     }
 
-    public String uploadSolutionFiles(String token, int id, String paths) throws CustomException {
+    public void uploadSolutionFiles(String token, int id, String paths) throws CustomException {
         System.out.println("Reached service");
-        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null)
-            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
-        Solution solution = solutionRepo.getSolutionByAssignment_AssignmentID(id);
-        if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено задача с това id");
-        String unneededPaths = "";
-        unneededPaths += solution.getSolutionFilesLocation();
-        unneededPaths = unneededPaths.replace(paths, "");
-        solution.setSolutionFilesLocation(paths);
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        if (student == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+        Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
+        if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
+        boolean isOverDue = assignment.getDueDateTime().before(new Timestamp(System.currentTimeMillis()));
+        Solution solution = Solution.builder().assignment(assignment).comments(new ArrayList<>())
+                .dateTime(new Timestamp(System.currentTimeMillis())).isOverdue(isOverDue).name(student.getFirstname())
+                .surname(student.getLastname()).teacherCommentCount(0).solutionFilesLocation(paths).build();
         solutionRepo.save(solution);
-        return unneededPaths;
     }
 
-    public void getSolutionFiles(String token, int id, String requestedFile) throws CustomException {
+    public String getSolutionFiles(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null)
-            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        if (teacher == null) {
+            Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+            if (student == null)
+                throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен потребител с този тоукън, моля логнете се");
+        }
         Solution solution = solutionRepo.getSolutionBySolutionID(id);
         if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
-        if (solution.getSolutionFilesLocation() == null)
+        String solutionFile = solution.getSolutionFilesLocation();
+        if (solutionFile == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерени файлове към тази задача");
-        String[] solutionFiles = solution.getSolutionFilesLocation().split(",");
-        boolean hasFile = false;
-        for (String solutionFile : solutionFiles) {
-            if (Objects.equals(solutionFile, requestedFile)) {
-                hasFile = true;
-                break;
-            }
-        }
-        if (!hasFile) throw new CustomException(HttpStatus.NOT_FOUND, "Файлът не беше намерен");
+        return solutionFile;
     }
 
-    public String getResourceFile(String token, int id) throws CustomException {
+    public String deleteSolution(String token, int id) throws CustomException {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        if (student == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен ученик с този тоукън, моля логнете се");
+        Solution solution = solutionRepo.getSolutionBySolutionID(id);
+        if (solution == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
+        String solutionFile = solution.getSolutionFilesLocation();
+        commentRepo.deleteAll(solution.getComments());
+        solutionRepo.delete(solution);
+        return solutionFile;
+    }
+
+        public String getResourceFile(String token, int id) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
@@ -1736,11 +1757,10 @@ public class CourseService {
             String status;
             if (solution.isOverdue()) status = "навреме";
             else status = "закъснял";
-            String[] solutionFiles = solution.getSolutionFilesLocation().split(",");
             AssignmentResponse assignmentResponse = AssignmentResponse.builder().id(solution.getSolutionID())
                     .studentName(solution.getName() + " " + solution.getSurname()).time(solution.getTime())
                     .date(solution.getDate()).status(status).commentAmount(solution.getTeacherCommentCount())
-                    .fileNames(solutionFiles).build();
+                    .fileNames(solution.getSolutionFilesLocation()).build();
             solutions.add(assignmentResponse);
         }
         return solutions;
@@ -1802,5 +1822,19 @@ public class CourseService {
         BOTTOM40PRICE_LESSON = DEVIATION_LESSON * (-0.26) + average;
         BOTTOM60PRICE_LESSON = DEVIATION_LESSON * (0.26) + average;
         BOTTOM80PRICE_LESSON = DEVIATION_LESSON * (0.67) + average;
+    }
+
+    public String generateMeeting(int id, String token) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        Thema thema = themaRepository.getThemaByThemaID(id);
+        if  (thema == null) {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена тема с това id");
+        }
+        String meetingId = "meet.jit.si/" + UUID.randomUUID().toString();
+        thema.setLinkToClassroom(meetingId);
+        themaRepository.save(thema);
+        return meetingId;
     }
 }

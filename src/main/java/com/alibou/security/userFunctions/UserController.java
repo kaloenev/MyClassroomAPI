@@ -6,6 +6,8 @@ import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.exceptionHandling.CustomWarning;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,11 +20,13 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -123,7 +127,6 @@ public class UserController {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -151,6 +154,7 @@ public class UserController {
 
         return ResponseEntity.ok(teacherId);
     }
+    //TODO Add image urls in all the endpoints
 
     @PostMapping("/uploadImageStudent/{imageId}")
     public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile[] requestFiles, @PathVariable int imageId,
@@ -164,8 +168,7 @@ public class UserController {
                     return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
                 }
                 Path newFile;
-                newFile = Paths.get("Student_Image_" + random.nextInt(Integer.MAX_VALUE) + "_"
-                        + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
+                newFile = Paths.get("Student_Image_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
                 filenameCounter++;
                 Files.copy(requestFiles[0].getInputStream(), newFile);
                 userService.saveStudentImage(httpRequest.getHeader("Authorization"), newFile.toString());
@@ -254,7 +257,7 @@ public class UserController {
     }
 
     @GetMapping("/getUser")
-    public ResponseEntity<Object> getTeacherProfile(HttpServletRequest httpServletRequest) {
+    public ResponseEntity<Object> getUser(HttpServletRequest httpServletRequest) {
         return ResponseEntity.ok(userService.getUser(httpServletRequest));
     }
 
@@ -282,8 +285,7 @@ public class UserController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         Path newFile;
-        newFile = Paths.get("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
-                + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
+        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
         filenameCounter++;
         try {
             Files.copy(requestFiles[0].getInputStream(), newFile);
@@ -293,6 +295,18 @@ public class UserController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/images/{filename}")
+    public Resource getImage(@PathVariable String filename) throws CustomException, MalformedURLException {
+        Path imagePath = Paths.get(filename);
+        Resource resource = new UrlResource(imagePath.toUri());
+
+        if (resource.exists() && resource.isReadable()) {
+            return resource;
+        } else {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Failed to load image: " + filename);
+        }
     }
 
     @GetMapping("/likeTeacher/{id}")

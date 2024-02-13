@@ -5,6 +5,8 @@ import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.exceptionHandling.CustomWarning;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,11 +15,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/lessons")
@@ -26,7 +30,6 @@ import java.util.Random;
 public class CourseController {
 
     private final CourseService courseService;
-    private int filenameCounter = 0;
 
     private Random random = new Random();
 
@@ -240,9 +243,7 @@ public class CourseController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         Path newFile;
-        newFile = Paths.get("Resource_" + random.nextInt(Integer.MAX_VALUE) + "_"
-                + filenameCounter + "_" + requestFiles[0].getOriginalFilename());
-        filenameCounter++;
+        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
         try {
             Files.copy(requestFiles[0].getInputStream(), newFile);
             courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.toString());
@@ -257,8 +258,10 @@ public class CourseController {
     public ResponseEntity<Object> deleteResource(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             String file = courseService.addResource(id, httpRequest.getHeader("Authorization"), null);
-            File file1 = new File(file);
-            file1.delete();
+            if (file != null && !file.isEmpty()) {
+                File file1 = new File(file);
+                file1.delete();
+            }
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -331,41 +334,67 @@ public class CourseController {
         }
     }
 
-    @PostMapping("/uploadAssignmentFiles/{id}")
-    public ResponseEntity<Object> uploadAssignmentFiles(@PathVariable int id, @RequestParam("file") MultipartFile file,
+    @PostMapping("/uploadAssignmentFiles")
+    public ResponseEntity<Object> uploadAssignmentFiles(@RequestParam("requestFiles") MultipartFile[] requestFiles,
                                                         HttpServletRequest httpRequest) {
         System.out.println("Reached controller");
         //TODO Check if the person is using this only for a new Assignment (more than 1 files risk)
+        //TODO Maybe add checks if the user is authenticated
+        if (requestFiles.length > 1) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
 
-        String paths;
-        StringBuilder pathBuilder = new StringBuilder();
+//        String paths;
+//        StringBuilder pathBuilder = new StringBuilder();
             Path newFile;
-            newFile = Paths.get("Assignment_" + random.nextInt(Integer.MAX_VALUE) + "_"
-                    + filenameCounter + "_" + file.getOriginalFilename());
-            filenameCounter++;
+            newFile = Paths.get("Assignment_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
             try {
-                Files.copy(file.getInputStream(), newFile);
+                Files.copy(requestFiles[0].getInputStream(), newFile);
             } catch (IOException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
             }
-            pathBuilder.append(newFile);
-        System.out.println("Saved files");
-        if (pathBuilder.isEmpty()) {
-            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
-            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-        }
-        paths = pathBuilder.toString();
-        try {
-            courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
-        } catch (CustomException e) {
-            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-        }
-        return new ResponseEntity<>(HttpStatus.OK);
+//            pathBuilder.append(newFile);
+//        System.out.println("Saved files");
+//        if (pathBuilder.isEmpty()) {
+//            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
+//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+//        }
+//        paths = pathBuilder.toString();
+//        try {
+//            courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
+//        } catch (CustomException e) {
+//            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+//        }
+        return ResponseEntity.ok(newFile.toString());
     }
 
-    @PostMapping("/getAssignmentStudent/{id}")
+    @GetMapping("/images/{filename}")
+    public Resource getImage(@PathVariable String filename) throws CustomException, MalformedURLException {
+        Path imagePath = Paths.get(filename);
+        Resource resource = new UrlResource(imagePath.toUri());
+
+        if (resource.exists() && resource.isReadable()) {
+            return resource;
+        } else {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Failed to load image: " + filename);
+        }
+    }
+
+    @GetMapping("/generateMeeting/{id}")
+    public ResponseEntity<Object> getStudentProfile(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(courseService.generateMeeting(id, httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @GetMapping("/getAssignmentStudent/{id}")
     public ResponseEntity<Object> getAssignmentStudent(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(courseService.getAssignmentStudent(httpRequest.getHeader("Authorization"), id));
@@ -376,36 +405,24 @@ public class CourseController {
     }
 
     @PostMapping("/uploadSolutionFiles/{id}")
-    public ResponseEntity<Object> uploadSolutionFiles(@PathVariable int id, @RequestParam("file") MultipartFile[] requestFiles,
+    public ResponseEntity<Object> uploadSolutionFiles(@PathVariable int id, @RequestParam("requestFiles") MultipartFile[] requestFiles,
                                                       HttpServletRequest httpRequest) {
         System.out.println("Reached controller");
-        if (requestFiles.length > 4) {
+        Path newFile;
+        if (requestFiles.length > 1) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-        String paths;
-        StringBuilder pathBuilder = new StringBuilder();
-        for (MultipartFile requestFile : requestFiles) {
-            Path newFile;
-            newFile = Paths.get("Solution" + random.nextInt(Integer.MAX_VALUE) + "_"
-                    + filenameCounter + "_" + requestFile.getOriginalFilename());
-            filenameCounter++;
+            newFile = Paths.get("Solution" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
             try {
-                Files.copy(requestFile.getInputStream(), newFile);
+                Files.copy(requestFiles[0].getInputStream(), newFile);
             } catch (IOException e) {
                 CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
                 return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
             }
-            pathBuilder.append(newFile).append(",");
-        }
         System.out.println("Saved solution files");
-        if (pathBuilder.isEmpty()) {
-            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
-            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-        }
-        paths = pathBuilder.substring(0, pathBuilder.length() - 1);
         try {
-            courseService.uploadSolutionFiles(httpRequest.getHeader("Authorization"), id, paths);
+            courseService.uploadSolutionFiles(httpRequest.getHeader("Authorization"), id, newFile.toString());
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -418,28 +435,42 @@ public class CourseController {
      *
      * @param id
      * @param httpRequest
-     * @param filesToDelete
      * @return
      */
     @GetMapping("/deleteAssignmentFile/{id}")
-    public ResponseEntity<Object> deleteAssignmentFile(@PathVariable int id, HttpServletRequest httpRequest,
-                                                       @RequestBody Map<String, String[]> filesToDelete) {
-        String paths;
-        StringBuilder pathBuilder = new StringBuilder();
-        for (String path : filesToDelete.get("fileNames")) {
-            pathBuilder.append(path).append(",");
-        }
-        if (pathBuilder.isEmpty()) {
-            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
+    public ResponseEntity<Object> deleteAssignmentFile(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            String deleteFiles = courseService.deleteAssignmentFiles(httpRequest.getHeader("Authorization"), id, null);
+                File file1 = new File(deleteFiles);
+                file1.delete();
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-        paths = pathBuilder.substring(0, pathBuilder.length() - 1);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/deleteAssignment/{id}")
+    public ResponseEntity<Object> deleteAssignment(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
-            String deleteFiles = courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
-            for (String file : deleteFiles.split(",")) {
-                File file1 = new File(file);
-                file1.delete();
-            }
+            String deleteFiles = courseService.deleteAssignment(httpRequest.getHeader("Authorization"), id);
+            File file1 = new File(deleteFiles);
+            file1.delete();
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/deleteSolution/{id}")
+    public ResponseEntity<Object> deleteSolution(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            String deleteFiles = courseService.deleteSolution(httpRequest.getHeader("Authorization"), id);
+            File file1 = new File(deleteFiles);
+            file1.delete();
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -482,7 +513,8 @@ public class CourseController {
     public ResponseEntity<Object> getSolutionFile(@PathVariable String path, @PathVariable int id, HttpServletRequest httpRequest) throws IOException {
 
         try {
-            courseService.getSolutionFiles(httpRequest.getHeader("Authorization"), id, path);
+            String solutionFile = courseService.getSolutionFiles(httpRequest.getHeader("Authorization"), id);
+            if (!Objects.equals(solutionFile, path)) throw new CustomException(HttpStatus.BAD_REQUEST, "Грешно име на файла");
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

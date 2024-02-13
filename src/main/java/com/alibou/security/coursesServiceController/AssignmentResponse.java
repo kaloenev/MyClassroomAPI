@@ -15,8 +15,8 @@ public class AssignmentResponse {
     private String studentName;
     private String teacherName;
     private String description;
-    private String[] fileNames;
-    private String[] solutionFileNames;
+    private String fileNames;
+    private String solutionFileNames;
     private String date;
     private String time;
     private String status;

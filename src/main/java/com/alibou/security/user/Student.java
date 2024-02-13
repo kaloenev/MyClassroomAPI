@@ -17,6 +17,7 @@ import java.util.Objects;
 @Entity
 @SuperBuilder
 public class Student extends User {
+    //TODO Order columns
     @ManyToMany(mappedBy = "enrolledStudents", fetch = FetchType.LAZY)
     @ToString.Exclude
     //TODO Find a way to order column or rewrite code
@@ -24,7 +25,6 @@ public class Student extends User {
 
     @OneToMany(mappedBy = "student")
     @ToString.Exclude
-    @OrderColumn
     private List<LessonTermin> privateLessons;
 
     @ManyToMany(mappedBy = "isLikedByStudent")
