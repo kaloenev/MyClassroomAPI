@@ -13,7 +13,7 @@ import java.util.List;
 public class LessonTerminResponse {
     private int lessonTerminId;
     private String date;
-    private List<TimePair> times;
+    private List<TimePair> lessonHours;
     private String time;
     private String dayOfTheWeek;
     private String status;

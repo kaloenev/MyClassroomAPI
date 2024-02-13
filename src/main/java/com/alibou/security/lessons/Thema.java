@@ -19,7 +19,6 @@ public class Thema {
     @GeneratedValue
     protected Integer themaID;
     protected String linkToRecording;
-    protected String linkToClassroom;
     protected String presentation;
     private String title;
     private String description;

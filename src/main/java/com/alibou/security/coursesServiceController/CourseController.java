@@ -213,7 +213,7 @@ public class CourseController {
         }
     }
 
-    @GetMapping("/deleteCourse/{id}")
+    @PostMapping("/deleteCourse/{id}")
     public ResponseEntity<Object> deleteCourse(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             courseService.deleteCourse(id, httpRequest.getHeader("Authorization"));
@@ -254,7 +254,7 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/deleteResource/{id}")
+    @PostMapping("/deleteResource/{id}")
     public ResponseEntity<Object> deleteResource(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             String file = courseService.addResource(id, httpRequest.getHeader("Authorization"), null);
@@ -437,7 +437,7 @@ public class CourseController {
      * @param httpRequest
      * @return
      */
-    @GetMapping("/deleteAssignmentFile/{id}")
+    @PostMapping("/deleteAssignmentFile/{id}")
     public ResponseEntity<Object> deleteAssignmentFile(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             String deleteFiles = courseService.deleteAssignmentFiles(httpRequest.getHeader("Authorization"), id, null);
@@ -451,7 +451,7 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/deleteAssignment/{id}")
+    @PostMapping("/deleteAssignment/{id}")
     public ResponseEntity<Object> deleteAssignment(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             String deleteFiles = courseService.deleteAssignment(httpRequest.getHeader("Authorization"), id);
@@ -465,7 +465,7 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/deleteSolution/{id}")
+    @PostMapping("/deleteSolution/{id}")
     public ResponseEntity<Object> deleteSolution(@PathVariable int id, HttpServletRequest httpRequest) {
         try {
             String deleteFiles = courseService.deleteSolution(httpRequest.getHeader("Authorization"), id);

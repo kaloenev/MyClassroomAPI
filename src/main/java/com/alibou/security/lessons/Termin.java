@@ -24,6 +24,7 @@ public class Termin {
     @Id
     @GeneratedValue
     protected Integer terminID;
+    protected String linkToClassroom;
     @Enumerated(EnumType.STRING)
     protected LessonStatus lessonStatus = LessonStatus.NOT_STARTED;
     private Timestamp dateTime;

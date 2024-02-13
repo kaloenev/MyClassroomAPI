@@ -135,7 +135,7 @@ public class CourseService {
         if (lesson.getDescription() == null || Objects.equals(lesson.getDescription(), ""))
             throw new CustomException(HttpStatus.CONFLICT, "Не сте задали описание на курса");
         if (lesson.getSubject() == null || Objects.equals(lesson.getSubject(), ""))
-            throw new CustomException(HttpStatus.CONFLICT, "Не сте задали описание на курса");
+            throw new CustomException(HttpStatus.CONFLICT, "Не сте задали клас на курса");
         if (!lesson.isHasTermins()) throw new CustomException(HttpStatus.CONFLICT, "Не сте добавили дати на курса");
         if (lesson.getPrice() <= 0) throw new CustomException(HttpStatus.CONFLICT, "Не сте задали цена на курса");
         if (lesson.getGrade() == null || Objects.equals(lesson.getGrade(), ""))
@@ -153,7 +153,7 @@ public class CourseService {
         if (!teacher.isVerified())
             throw new CustomException(HttpStatus.CONFLICT, "You must be verified to create a course");
         System.out.println(teacher.getId());
-        if (!isDraft) checkNonDraftRequirements(courseRequest);
+        if (!isDraft) checkNonDraftRequirements(courseRequest, isPrivateLesson);
         Lesson lesson = Lesson.builder().teacher(teacher).build();
         lesson.setTitle(courseRequest.getTitle());
         lesson.setSubject(courseRequest.getSubject());
@@ -224,6 +224,8 @@ public class CourseService {
                 }
                 thema.setLesson(lesson);
                 themaRepository.save(thema);
+            } else {
+                thema = Thema.builder().title(lesson.getTitle()).build();
             }
             lesson.setStudentsUpperBound(1);
             List<Thema> themas = new ArrayList<>();
@@ -242,6 +244,8 @@ public class CourseService {
                                         .title(courseRequest.getThemas()[0].getTitle()).build();
                             }
                             themaRepository.save(thema1);
+                        } else {
+                            thema = Thema.builder().title(lesson.getTitle()).build();
                         }
                         String hours = timePair.getTime();
                         LessonTermin lessonTermin = LessonTermin.builder().lessonHours(Integer.parseInt(hours.replace(":", "")))
@@ -270,8 +274,8 @@ public class CourseService {
         }
     }
 
-    private void checkNonDraftRequirements(CreateCourseRequest courseRequest) throws CustomException {
-        if (courseRequest.getThemas() == null || courseRequest.getThemas().length <= 0)
+    private void checkNonDraftRequirements(CreateCourseRequest courseRequest, boolean isPrivateLesson) throws CustomException {
+        if (!isPrivateLesson && (courseRequest.getThemas() == null || courseRequest.getThemas().length <= 0))
             throw new CustomException(HttpStatus.CONFLICT, "Моля добавете теми или запазете курса като чернова");
 
         if ((courseRequest.getPrivateLessonTermins() == null || courseRequest.getPrivateLessonTermins().isEmpty())
@@ -300,15 +304,34 @@ public class CourseService {
         if (!isPrivateLesson) {
             //TODO Find alternative to removal
             lesson.setStudentsUpperBound(courseRequest.getStudentsUpperBound());
+            List<CourseTermin> courseTermins = new ArrayList<>();
             if (lesson.isHasTermins()) {
-                for (CourseTermin termin : lesson.getCourseTermins()) {
-                    themaRepository.deleteAll(termin.getThemas());
+                courseTermins = lesson.getCourseTermins();
+                for (CourseTermin termin : courseTermins) {
+                    if (termin.isEmpty()) {
+                        themaRepository.deleteAll(termin.getThemas());
+                    }
                 }
             }
             themaRepository.deleteAll(lesson.getThemas());
-            terminRepo.deleteAll(lesson.getTermins());
-            lesson.removeAllTermins();
-            lesson.setHasTermins(false);
+            if (lesson.isDraft()) {
+                terminRepo.deleteAll(lesson.getTermins());
+                lesson.removeAllTermins();
+                lesson.setHasTermins(false);
+            }
+            else {
+                boolean hasTermins = false;
+                for (CourseTermin termin : courseTermins) {
+                    if (termin.isEmpty()) {
+                        courseTerminRepo.delete(termin);
+                        lesson.removeTermin(termin);
+                    }
+                    else {
+                        hasTermins = true;
+                    }
+                }
+                lesson.setHasTermins(hasTermins);
+            }
             List<Thema> themas = new ArrayList<>();
             if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
                 for (ThemaSimpleResponse themaData : courseRequest.getThemas()) {
@@ -357,14 +380,32 @@ public class CourseService {
                 lessonRepository.save(lesson);
             }
         } else {
+            List<LessonTermin> lessonTermins = new ArrayList<>();
             if (lesson.isHasTermins()) {
-                for (LessonTermin termin : lesson.getLessonTermins()) {
-                    themaRepository.delete(termin.getThema());
+                lessonTermins = lesson.getLessonTermins();
+                for (LessonTermin termin : lessonTermins) {
+                    if (termin.isEmpty()) themaRepository.delete(termin.getThema());
                 }
             }
             lesson.setStudentsUpperBound(1);
-            terminRepo.deleteAll(lesson.getTermins());
-            lesson.removeAllTermins();
+            if (lesson.isDraft()) {
+                terminRepo.deleteAll(lesson.getTermins());
+                lesson.removeAllTermins();
+                lesson.setHasTermins(false);
+            }
+            else {
+                boolean hasTermins = false;
+                for (LessonTermin termin : lessonTermins) {
+                    if (termin.isEmpty()) {
+                        lessonTerminRepo.delete(termin);
+                        lesson.removeTermin(termin);
+                    }
+                    else {
+                        hasTermins = true;
+                    }
+                }
+                lesson.setHasTermins(hasTermins);
+            }
             themaRepository.deleteAll(lesson.getThemas());
             Thema thema = null;
             if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
@@ -820,7 +861,7 @@ public class CourseService {
                         dayOfMonth = currentDayOfMonth;
                     } else if (currentDayOfMonth != dayOfMonth) {
                         LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate)
-                                .times(timePairs).build();
+                                .lessonHours(timePairs).build();
                         timePairs = new ArrayList<>();
                         dayOfMonth = currentDayOfMonth;
                         lessonTerminResponses.add(lessonTerminResponse);
@@ -832,7 +873,7 @@ public class CourseService {
                             timePairs.add(timePair);
                         }
                         LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate)
-                                .times(timePairs).build();
+                                .lessonHours(timePairs).build();
                         lessonTerminResponses.add(lessonTerminResponse);
                     }
                     counter++;
@@ -1411,7 +1452,7 @@ public class CourseService {
                 timePairs.add(timePair);
                 dayOfMonth = currentDayOfMonth;
             } else if (currentDayOfMonth != dayOfMonth) {
-                LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate).times(timePairs)
+                LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate).lessonHours(timePairs)
                         .dayOfTheWeek(lessonTermin.getDateTime().toLocalDateTime().getDayOfWeek().toString())
                         .status(lessonTermin.getLessonStatus().toString()).build();
                 timePairs = new ArrayList<>();
@@ -1425,7 +1466,7 @@ public class CourseService {
                     timePairs.add(timePair);
                 }
                 LessonTerminResponse lessonTerminResponse = LessonTerminResponse.builder().date(lessonDate)
-                        .times(timePairs).build();
+                        .lessonHours(timePairs).build();
                 lessonTerminResponses.add(lessonTerminResponse);
             }
             counter++;
@@ -1464,7 +1505,8 @@ public class CourseService {
             students = courseTermin.getEnrolledStudents();
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle()).assignmentLocation(assignmentRequest.getFileNames())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
+                            + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>())
+                    .altTime(assignmentRequest.getAltTime()).build();
             assignmentRepo.save(assignment);
             courseTerminRepo.save(courseTermin);
         } else {
@@ -1472,7 +1514,8 @@ public class CourseService {
             students.add(lessonTermin.getStudent());
             assignment = Assignment.builder().students(students).title(assignmentRequest.getTitle()).assignmentLocation(assignmentRequest.getFileNames())
                     .description(assignmentRequest.getDescription()).dueDateTime(Timestamp.valueOf(assignmentRequest.getDate()
-                            + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>()).build();
+                            + " " + assignmentRequest.getTime() + ":00")).teacher(teacher).thema(thema).students(new ArrayList<>())
+                    .altTime(assignmentRequest.getAltTime()).build();
             assignmentRepo.save(assignment);
             lessonTerminRepo.save(lessonTermin);
         }
@@ -1496,6 +1539,7 @@ public class CourseService {
         assignment.setDescription(assignmentRequest.getDescription());
         assignment.setDueDateTime(Timestamp.valueOf(assignmentRequest.getDate() + " " + assignmentRequest.getTime() + ":00"));
         assignment.setAssignmentLocation(assignmentRequest.getFileNames());
+        assignment.setAltTime(assignmentRequest.getAltTime());
         assignmentRepo.save(assignment);
 //        for (Student student : students) {
 //            student.addAssignment(assignment);
@@ -1543,7 +1587,7 @@ public class CourseService {
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
         return AssignmentResponse.builder().title(assignment.getTitle()).id(assignment.getAssignmentID())
                 .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
-                .fileNames(assignment.getAssignmentLocation()).build();
+                .fileNames(assignment.getAssignmentLocation()).altTime(assignment.getAltTime()).build();
     }
 
     public AssignmentResponse getAssignmentStudent(String token, int id) throws CustomException {
@@ -1828,13 +1872,13 @@ public class CourseService {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
-        Thema thema = themaRepository.getThemaByThemaID(id);
-        if  (thema == null) {
+        Termin termin = terminRepo.getTerminByTerminID(id);
+        if  (termin == null) {
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена тема с това id");
         }
         String meetingId = "meet.jit.si/" + UUID.randomUUID().toString();
-        thema.setLinkToClassroom(meetingId);
-        themaRepository.save(thema);
+        termin.setLinkToClassroom(meetingId);
+        terminRepo.save(termin);
         return meetingId;
     }
 }

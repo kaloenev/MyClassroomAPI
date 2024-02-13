@@ -59,7 +59,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
 //            .addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class)
-                .csrf()
+                .csrf().ignoringRequestMatchers("/ws/**")
                 .disable()
                 .cors(cors -> {
                     cors.configurationSource(corsConfigurationSource());
@@ -140,6 +140,8 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:3002");
         configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedOrigin("ws://localhost:3002");
+        configuration.addAllowedOrigin("ws://localhost:3000");
         configuration.addAllowedOrigin("https://frontend-test-coei.vercel.app/");
         configuration.addAllowedOrigin("https://frontend-test-coei-kaloyans-projects-3ca58d7b.vercel.app/");
         configuration.addAllowedOrigin("https://frontend-test-coei-git-develop-kaloyans-projects-3ca58d7b.vercel.app/");

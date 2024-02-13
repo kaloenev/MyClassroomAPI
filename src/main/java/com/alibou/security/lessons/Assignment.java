@@ -27,6 +27,7 @@ public class Assignment {
     private String description;
     private Timestamp dueDateTime;
     private String assignmentLocation;
+    private String altTime;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thema_id")

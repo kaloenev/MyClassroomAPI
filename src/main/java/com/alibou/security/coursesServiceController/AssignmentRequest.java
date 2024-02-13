@@ -17,6 +17,7 @@ public class AssignmentRequest {
     private String description;
     private String fileNames;
     private String date;
+    private String altTime;
     private String time;
     private String status;
     private String comment;

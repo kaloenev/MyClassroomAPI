@@ -19,6 +19,7 @@ public class AssignmentResponse {
     private String solutionFileNames;
     private String date;
     private String time;
+    private String altTime;
     private String status;
     private String comment;
     private int commentAmount;
