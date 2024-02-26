@@ -158,6 +158,11 @@ public class CourseService {
         lesson.setTitle(courseRequest.getTitle());
         lesson.setSubject(courseRequest.getSubject());
         lesson.setGrade(courseRequest.getGrade());
+        if (courseRequest.getImageLocation() == null) {
+            lesson.setImageLocation("Assignment_301947782_0_number of mesoscopic papers.PNG");
+        } else {
+            lesson.setImageLocation(courseRequest.getImageLocation());
+        }
         lesson.setDescription(courseRequest.getDescription());
         lesson.setLength(courseRequest.getLength());
         lesson.setPrivateLesson(isPrivateLesson);
@@ -213,9 +218,10 @@ public class CourseService {
                 lesson.getTermins().sort(Comparator.comparing(Termin::getDateTime));
             }
         } else {
+            lesson.setUpperGrade(courseRequest.getUpperGrade());
             lessonRepository.save(lesson);
             Thema thema = null;
-            if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
+            if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0 && courseRequest.getThemas()[0] != null) {
                 if (courseRequest.getThemas()[0].getDescription() == null) {
                     thema = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
                 } else {
@@ -236,7 +242,7 @@ public class CourseService {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
                     for (TimePair timePair : privateLessonTermin.getLessonHours()) {
                         Thema thema1 = null;
-                        if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
+                        if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0 && courseRequest.getThemas()[0] != null) {
                             if (courseRequest.getThemas()[0].getDescription() == null) {
                                 thema1 = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
                             } else {
@@ -297,6 +303,11 @@ public class CourseService {
         lesson.setSubject(courseRequest.getSubject());
         lesson.setGrade(courseRequest.getGrade());
         lesson.setDescription(courseRequest.getDescription());
+        if (courseRequest.getImageLocation() == null) {
+            lesson.setImageLocation("Assignment_301947782_0_number of mesoscopic papers.PNG");
+        } else {
+            lesson.setImageLocation(courseRequest.getImageLocation());
+        }
         lesson.setLength(courseRequest.getLength());
         lesson.setPrivateLesson(isPrivateLesson);
         lesson.setPrice(courseRequest.getPrice());
@@ -380,6 +391,7 @@ public class CourseService {
                 lessonRepository.save(lesson);
             }
         } else {
+            lesson.setUpperGrade(courseRequest.getUpperGrade());
             List<LessonTermin> lessonTermins = new ArrayList<>();
             if (lesson.isHasTermins()) {
                 lessonTermins = lesson.getLessonTermins();
@@ -408,7 +420,7 @@ public class CourseService {
             }
             themaRepository.deleteAll(lesson.getThemas());
             Thema thema = null;
-            if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
+            if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0 && courseRequest.getThemas()[0] != null) {
                 if (courseRequest.getThemas()[0].getDescription() == null) {
                     thema = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
                 } else {
@@ -425,7 +437,7 @@ public class CourseService {
                 for (LessonTerminRequest privateLessonTermin : courseRequest.getPrivateLessonTermins()) {
                     for (TimePair timePair : privateLessonTermin.getLessonHours()) {
                         Thema thema1 = null;
-                        if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0) {
+                        if (courseRequest.getThemas() != null && courseRequest.getThemas().length > 0 && courseRequest.getThemas()[0] != null) {
                             if (courseRequest.getThemas()[0].getDescription() == null) {
                                 thema1 = Thema.builder().title(courseRequest.getThemas()[0].getTitle()).build();
                             } else {
@@ -740,14 +752,13 @@ public class CourseService {
         if (lesson.isPrivateLesson()) {
             List<LessonTermin> lessonTermins = lesson.getLessonTermins();
             List<LessonTerminResponse> lessonTerminResponses = new ArrayList<>();
-            ThemaSimpleResponse thema = new ThemaSimpleResponse(lessonTermins.get(0).getThema().getTitle(), lessonTermins.get(0).getThema().getDescription());
             for (LessonTermin lessonTermin : lessonTermins) {
                 Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                         + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
                 lessonTerminResponses.add(new LessonTerminResponse(lessonTermin.getTerminID(), lessonTermin.getDate(),
                         lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16)));
             }
-            lessonResponse = new LessonResponse(lesson, lessonTerminResponses, reviews.getReviewResponses(), thema);
+            lessonResponse = new LessonResponse(lesson, lessonTerminResponses, reviews.getReviewResponses());
             lessonResponse.setPricePerHour(Math.round(lessonResponse.getPrice() * 100.0) / 100.0);
         } else {
             lessonResponse = new LessonResponse(lesson, reviews.getReviewResponses());
@@ -757,7 +768,7 @@ public class CourseService {
         }
         List<LessonResponse> lessonResponses = new ArrayList<>();
         lessonResponses.add(lessonResponse);
-        for (Lesson lesson1 : lessonRepository.findTop4BySubjectOrGradeOrderByPopularityDesc(lesson.getSubject(), lessonResponse.getGrade())) {
+        for (Lesson lesson1 : lessonRepository.getSimilarLessons(lesson.getSubject(), lessonResponse.getGrade())) {
             if (Objects.equals(lesson1.getLessonID(), lesson.getLessonID())) continue;
             if (lesson1.isPrivateLesson()) {
                 List<LessonTermin> lessonTermins = lesson1.getLessonTermins();
@@ -853,7 +864,7 @@ public class CourseService {
                     int currentDayOfMonth = lessonTermin.getDateTime().toLocalDateTime().getDayOfMonth();
                     Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                             + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
-                    TimePair timePair = new TimePair(lessonTermin.getTerminID(),
+                    TimePair timePair = new TimePair(lessonTermin.getTerminID(), lessonTermin.getTime(),
                             lessonTermin.getTime() + " - " + timestamp.toString().substring(11, 16), lessonTermin.isFull());
 
                     if ((dayOfMonth == -1 || currentDayOfMonth == dayOfMonth) && counter != lessonTerminsSize) {
@@ -878,10 +889,10 @@ public class CourseService {
                     }
                     counter++;
                 }
-                lessonResponse = new LessonResponse(lesson, lessonTerminResponses, null, thema);
+                lessonResponse = new LessonResponse(lesson, lessonTerminResponses, null);
                 lessonResponse.setTeacherResponse(null);
             } else {
-                lessonResponse = new LessonResponse(lesson, null, null, thema);
+                lessonResponse = new LessonResponse(lesson, null, null);
                 lessonResponse.setTeacherResponse(null);
             }
             lessonResponse.setPricePerHour(Math.round(lessonResponse.getPrice() * 100.0) / 100.0);
@@ -961,7 +972,8 @@ public class CourseService {
             String teacherName = null;
             if (isTeacher) {
                 Student terminStudent = lessonTermin.getStudent();
-                students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(), terminStudent.getLastname()));
+                students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(),
+                        terminStudent.getLastname(), terminStudent.getPictureLocation()));
             } else {
                 students = null;
                 teacher = lesson.getTeacher();
@@ -985,7 +997,8 @@ public class CourseService {
                 if (!Objects.equals(lesson.getTeacher().getId(), teacher.getId()))
                     throw new CustomException(HttpStatus.CONFLICT, "Имате достъп само до вашите уроци");
                 for (Student terminStudent : courseTermin.getEnrolledStudents()) {
-                    students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(), terminStudent.getLastname()));
+                    students.add(new UserProfileResponse(terminStudent.getId(), terminStudent.getFirstname(),
+                            terminStudent.getLastname(), terminStudent.getPictureLocation()));
                 }
             } else {
                 boolean isInCourse = false;
@@ -1073,7 +1086,7 @@ public class CourseService {
                     CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                     Lesson lesson = courseTermin.getLesson();
                     Teacher teacher = lesson.getTeacher();
-                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getImageLocation(), lesson.getTitle(), lesson.isPrivateLesson(),
                             teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
                     lessonResponse.setLength(lesson.getLength());
                     lessonResponses.add(lessonResponse);
@@ -1086,7 +1099,7 @@ public class CourseService {
                     CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                     Lesson lesson = courseTermin.getLesson();
                     Teacher teacher = lesson.getTeacher();
-                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getImageLocation(), lesson.getTitle(), lesson.isPrivateLesson(),
                             teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
                     lessonResponse.setLength(lesson.getLength());
                     lessonResponses.add(lessonResponse);
@@ -1095,7 +1108,8 @@ public class CourseService {
                 if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
                     Lesson lesson = lessonTermin.getLesson();
                     Teacher teacher = lesson.getTeacher();
-                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                    lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getImageLocation(),
+                            lesson.getTitle(), lesson.isPrivateLesson(),
                             teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                             lessonTermin.getDate(), lessonTermin.getTime() + " - "
                             + new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16),
@@ -1114,7 +1128,8 @@ public class CourseService {
                 LessonTermin lessonTermin = lessonTermins.get(lessonTerminCounter);
                 Lesson lesson = lessonTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
-                lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.getImageLocation(),
+                        lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                         lessonTermin.getDate(), lessonTermin.getTime() + " - "
                         + new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16),
@@ -1145,7 +1160,8 @@ public class CourseService {
             if (elementCounter >= lessonRequest.getPage() * 12 - 12) {
                 Lesson lesson = lessonTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
-                LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
+                LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getImageLocation(),
+                        lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                         lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
 
@@ -1174,8 +1190,9 @@ public class CourseService {
                 CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                 Lesson lesson = courseTermin.getLesson();
                 Teacher teacher = lesson.getTeacher();
-                LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getTitle(), lesson.isPrivateLesson(),
-                        teacher.getFirstname(), teacher.getLastname(), courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
+                LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getImageLocation(),
+                        lesson.getTitle(), lesson.isPrivateLesson(), teacher.getFirstname(), teacher.getLastname(),
+                        courseTermin.getLessonStatus().toString(), courseTerminRequestResponse, teacher.getId());
                 lessonResponses.add(lessonResponse);
             }
             elementCounter++;
@@ -1447,7 +1464,10 @@ public class CourseService {
         for (LessonTermin lessonTermin : lessonTermins) {
             //TODO Maybe add a month check as well
             int currentDayOfMonth = lessonTermin.getDateTime().toLocalDateTime().getDayOfMonth();
-            TimePair timePair = new TimePair(lessonTermin.getTerminID(), lessonTermin.getTime(), lessonTermin.isFull());
+            TimePair timePair = new TimePair(lessonTermin.getTerminID(),
+                    lessonTermin.getTime() + " - " + new Timestamp(lessonTermin.getDateTime().getTime()
+                            + lessonTermin.getLesson().getLength() * 60000L).toString().substring(11, 16),
+                    null, lessonTermin.isFull());
             if ((dayOfMonth == -1 || currentDayOfMonth == dayOfMonth) && counter != lessonTerminsSize) {
                 timePairs.add(timePair);
                 dayOfMonth = currentDayOfMonth;

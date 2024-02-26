@@ -11,8 +11,14 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class MessageContactsResponse {
-    private int contactId;
+    private int receiverId;
+    private String picture;
     private String name;
     private String dateTime;
-    private List<ChatNotification> messages;
+    private String senderId;
+    private String recipientId;
+    private String content;
+    private String date;
+    private String time;
+    private boolean isFile;
 }

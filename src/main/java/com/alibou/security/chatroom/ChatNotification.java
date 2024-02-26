@@ -15,4 +15,5 @@ public class ChatNotification {
     private String content;
     private String date;
     private String time;
+    private boolean isFile;
 }

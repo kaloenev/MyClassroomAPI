@@ -22,8 +22,10 @@ public class Message {
     private Timestamp dateTime;
     private String content;
     private boolean isStudentTheSender;
+    private boolean isFile;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    //TODO Check all eager fetches and maybe change impl
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "message_id")
     @ToString.Exclude
     private MessageContact contact;

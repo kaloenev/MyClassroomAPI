@@ -13,6 +13,7 @@ import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -65,44 +66,74 @@ public class UserService {
         if (student == null) {
             teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
             if (teacher == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
-            contacts = teacher.getMessages();
+            contacts = messageContactRepo.getMessageContactsByTeacher_Id(teacher.getId());
         } else {
-            contacts = student.getMessages();
+            contacts = messageContactRepo.getMessageContactsByStudent_Id(student.getId());
         }
         List<MessageContactsResponse> responses = new ArrayList<>();
         for (MessageContact contact : contacts) {
-            List<Message> messages = contact.getMessages();
-            List<ChatNotification> chatNotifications = new ArrayList<>();
-            for (Message message : messages) {
-                ChatNotification chatNotification;
-                if (message.isStudentTheSender()) {
-                    chatNotification = ChatNotification.builder().content(message.getContent())
-                            .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
-                            .senderId(contact.getStudent().getId().toString()).build();
-                } else {
-                    chatNotification = ChatNotification.builder().content(message.getContent())
-                            .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
-                            .senderId(contact.getTeacher().getId().toString()).build();
-                }
-                chatNotifications.add(chatNotification);
-            }
+            Message message = messageRepo.findFirstByContact_MessageIDOrderByDateTimeDesc(contact.getMessageID());
             MessageContactsResponse messageContactsResponse;
             if (student == null) {
                 //TODO Add dates as well if the message is not from today
-                messageContactsResponse = MessageContactsResponse.builder().contactId(contact.getMessageID())
-                        .messages(chatNotifications).name(contact.getStudent().getFirstname() + " " + contact.getStudent().getLastname())
-                        .dateTime(chatNotifications.get(0).getTime()).build();
+                messageContactsResponse = MessageContactsResponse.builder().receiverId(contact.getStudent().getId())
+                        .name(contact.getStudent().getFirstname() + " " + contact.getStudent().getLastname())
+                        .dateTime(message.getDateTime().toString())
+                        .picture("http://localhost:8080/api/v1/users/images/" + contact.getStudent().getPictureLocation())
+                        .content(message.getContent())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
+                        .senderId(contact.getTeacher().getId().toString()).isFile(message.isFile()).build();
             } else {
-                messageContactsResponse = MessageContactsResponse.builder().contactId(contact.getMessageID())
-                        .messages(chatNotifications).name(contact.getTeacher().getFirstname() + " " + contact.getTeacher().getLastname())
-                        .dateTime(chatNotifications.get(0).getTime()).build();
+                messageContactsResponse = MessageContactsResponse.builder().receiverId(contact.getTeacher().getId())
+                        .name(contact.getTeacher().getFirstname() + " " + contact.getTeacher().getLastname())
+                        .dateTime(message.getDateTime().toString())
+                        .picture("http://localhost:8080/api/v1/users/images/" + contact.getTeacher().getPictureLocation())
+                        .content(message.getContent())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
+                        .senderId(contact.getStudent().getId().toString()).isFile(message.isFile()).build();
             }
             responses.add(messageContactsResponse);
         }
         return responses;
     }
 
-    public List<ChatNotification> getMessages(String token, int id) throws CustomException {
+    //TODO Find better option for single contact query
+    public MessageContactsResponse getLastContact(String token) throws CustomException {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        Teacher teacher;
+        List<MessageContact> contacts;
+        if (student == null) {
+            teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+            if (teacher == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
+            contacts = messageContactRepo.getMessageContactsByTeacher_Id(teacher.getId());
+        } else {
+            contacts = messageContactRepo.getMessageContactsByStudent_Id(student.getId());
+        }
+        MessageContact contact = contacts.get(0);
+            Message message = messageRepo.findFirstByContact_MessageIDOrderByDateTimeDesc(contact.getMessageID());
+            MessageContactsResponse messageContactsResponse;
+            if (student == null) {
+                //TODO Add dates as well if the message is not from today
+                messageContactsResponse = MessageContactsResponse.builder().receiverId(contact.getStudent().getId())
+                        .name(contact.getStudent().getFirstname() + " " + contact.getStudent().getLastname())
+                        .dateTime(message.getDateTime().toString())
+                        .picture("http://localhost:8080/api/v1/users/images/" + contact.getStudent().getPictureLocation())
+                        .content(message.getContent())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
+                        .senderId(contact.getTeacher().getId().toString()).isFile(message.isFile()).build();
+            } else {
+                messageContactsResponse = MessageContactsResponse.builder().receiverId(contact.getTeacher().getId())
+                        .name(contact.getTeacher().getFirstname() + " " + contact.getTeacher().getLastname())
+                        .dateTime(message.getDateTime().toString())
+                        .picture("http://localhost:8080/api/v1/users/images/" + contact.getTeacher().getPictureLocation())
+                        .content(message.getContent())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
+                        .senderId(contact.getStudent().getId().toString()).isFile(message.isFile()).build();
+            }
+        return messageContactsResponse;
+    }
+
+    public List<ChatNotification> getMessages(String token, int id, boolean isFromMessageTab) throws CustomException {
         //TODO Add check if the user has access to this messageContact
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         Teacher teacher;
@@ -110,109 +141,135 @@ public class UserService {
             teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
             if (teacher == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
         }
-        MessageContact contact = messageContactRepo.getMessageContactByMessageID(id);
-            List<Message> messages = contact.getMessages();
-            List<ChatNotification> chatNotifications = new ArrayList<>();
-            for (Message message : messages) {
-                ChatNotification chatNotification;
-                if (message.isStudentTheSender()) {
-                    chatNotification = ChatNotification.builder().content(message.getContent())
-                            .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
-                            .senderId(contact.getStudent().getId().toString()).build();
-                } else {
-                    chatNotification = ChatNotification.builder().content(message.getContent())
-                            .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
-                            .senderId(contact.getTeacher().getId().toString()).build();
-                }
-                chatNotifications.add(chatNotification);
+        MessageContact contact;
+        if (isFromMessageTab) {
+            contact = messageContactRepo.getMessageContactByMessageID(id);
+        } else if (student == null) {
+            contact = messageContactRepo.getMessageContactByStudent_Id(id);
+        } else {
+            contact = messageContactRepo.getMessageContactByTeacher_Id(id);
+        }
+        List<Message> messages = contact.getMessages();
+        List<ChatNotification> chatNotifications = new ArrayList<>();
+        for (Message message : messages) {
+            ChatNotification chatNotification;
+            if (message.isStudentTheSender()) {
+                chatNotification = ChatNotification.builder().content(message.getContent())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
+                        .senderId(contact.getStudent().getId().toString()).isFile(message.isFile()).build();
+            } else {
+                chatNotification = ChatNotification.builder().content(message.getContent())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
+                        .senderId(contact.getTeacher().getId().toString()).isFile(message.isFile()).build();
             }
+            chatNotifications.add(chatNotification);
+        }
+        if (!contact.isRead()) {
+            contact.setRead(true);
+            messageContactRepo.save(contact);
+        }
         return chatNotifications;
     }
 
-    public void sendMessage(int senderId, String content, int receiverID) throws CustomException {
+    public void sendMessage(String token, String content, int receiverID, boolean isFile) throws CustomException {
         //TODO Check security
-        var user = userRepository.findUserById(senderId);
+        var user = userRepository.findUserByTokens_token(token);
+        if (user == null) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
+        }
         var user1 = userRepository.findUserById(receiverID);
+        boolean foundContact = false;
         if (user.getRole().equals(Role.STUDENT)) {
             if (user1.getRole().equals(Role.STUDENT))
                 throw new CustomException(HttpStatus.FORBIDDEN, "Can not send message to another student");
-            Student student = studentRepository.findStudentById(senderId);
+            Student student = studentRepository.findStudentById(user.getId());
             Teacher teacher = teacherRepository.findTeacherById(receiverID);
-            List<MessageContact> messageContactList = student.getMessages();
-            int counter = messageContactList.size();
+            List<MessageContact> messageContactList = messageContactRepo.getMessageContactsByStudent_Id(user.getId());
             for (MessageContact messageContact : messageContactList) {
                 if (Objects.equals(messageContact.getTeacher().getUsername(), teacher.getUsername())) {
                     Message message = new Message();
                     message.setDateTime(new Timestamp(System.currentTimeMillis()));
                     message.setContent(content);
                     message.setStudentTheSender(true);
+                    message.setContact(messageContact);
+                    message.setFile(isFile);
                     messageRepo.save(message);
-                    messageContact.addNewMessage(message);
+//                    messageContact.addNewMessage(message);
+                    messageContact.setRead(false);
                     messageContactRepo.save(messageContact);
-                    student.saveMessage(messageContact);
-                    teacher.saveMessage(messageContact);
+//                    student.saveMessage(messageContact);
+//                    teacher.saveMessage(messageContact);
+                    foundContact = true;
                     break;
-
-                } else if (counter == 1) {
-                    MessageContact messageContact1 = new MessageContact();
-                    messageContact1.setStudent(student);
-                    messageContact.setTeacher(teacher);
-                    List<Message> messages = new ArrayList<>();
-                    Message message = new Message();
-                    message.setDateTime(new Timestamp(System.currentTimeMillis()));
-                    message.setContent(content);
-                    message.setStudentTheSender(true);
-                    messages.add(message);
-                    messageRepo.save(message);
-                    messageContact.setMessages(messages);
-                    messageContactRepo.save(messageContact);
-                    student.saveMessage(messageContact);
-                    teacher.saveMessage(messageContact);
                 }
-                counter--;
+            }
+            if (!foundContact) {
+                MessageContact messageContact = new MessageContact();
+                messageContact.setStudent(student);
+                messageContact.setTeacher(teacher);
+                messageContact.setRead(false);
+                messageContactRepo.save(messageContact);
+//                List<Message> messages = new ArrayList<>();
+                Message message = new Message();
+                message.setDateTime(new Timestamp(System.currentTimeMillis()));
+                message.setContent(content);
+                message.setStudentTheSender(true);
+//                messages.add(message);
+                message.setContact(messageContact);
+                message.setFile(isFile);
+                messageRepo.save(message);
+//                messageContact.setMessages(messages);
+//                student.saveMessage(messageContact);
+//                teacher.saveMessage(messageContact);
             }
         } else {
             if (user1.getRole().equals(Role.TEACHER))
                 throw new CustomException(HttpStatus.FORBIDDEN, "Can not send message to another teacher");
             Student student = studentRepository.findStudentById(receiverID);
-            Teacher teacher = teacherRepository.findTeacherById(senderId);
-            List<MessageContact> messageContactList = teacher.getMessages();
-            int counter = messageContactList.size();
+            Teacher teacher = teacherRepository.findTeacherById(user.getId());
+            List<MessageContact> messageContactList = messageContactRepo.getMessageContactsByTeacher_Id(user.getId());
             for (MessageContact messageContact : messageContactList) {
                 if (Objects.equals(messageContact.getStudent().getUsername(), student.getUsername())) {
                     Message message = new Message();
                     message.setDateTime(new Timestamp(System.currentTimeMillis()));
                     message.setContent(content);
                     message.setStudentTheSender(false);
+                    message.setContact(messageContact);
+                    message.setFile(isFile);
                     messageRepo.save(message);
-                    messageContact.addNewMessage(message);
+//                    messageContact.addNewMessage(message);
+                    messageContact.setRead(false);
                     messageContactRepo.save(messageContact);
-                    student.saveMessage(messageContact);
-                    teacher.saveMessage(messageContact);
+//                    student.saveMessage(messageContact);
+//                    teacher.saveMessage(messageContact);
+                    foundContact = true;
                     break;
-
-                } else if (counter == 1) {
-                    MessageContact messageContact1 = new MessageContact();
-                    messageContact1.setStudent(student);
-                    messageContact.setTeacher(teacher);
-                    List<Message> messages = new ArrayList<>();
-                    Message message = new Message();
-                    message.setDateTime(new Timestamp(System.currentTimeMillis()));
-                    message.setContent(content);
-                    message.setStudentTheSender(false);
-                    messages.add(message);
-                    messageRepo.save(message);
-                    messageContact.setMessages(messages);
-                    messageContactRepo.save(messageContact);
-                    student.saveMessage(messageContact);
-                    teacher.saveMessage(messageContact);
                 }
-                counter--;
+            }
+            if (!foundContact) {
+                MessageContact messageContact = new MessageContact();
+                messageContact.setStudent(student);
+                messageContact.setTeacher(teacher);
+                messageContact.setRead(false);
+                messageContactRepo.save(messageContact);
+//                List<Message> messages = new ArrayList<>();
+                Message message = new Message();
+                message.setDateTime(new Timestamp(System.currentTimeMillis()));
+                message.setContent(content);
+                message.setStudentTheSender(false);
+                message.setContact(messageContact);
+                message.setFile(isFile);
+//                messages.add(message);
+                messageRepo.save(message);
+//                messageContact.setMessages(messages);
+
+//                student.saveMessage(messageContact);
+//                teacher.saveMessage(messageContact);
             }
         }
     }
 
-    public int verifyTeacher(String token, String name, String surname, Gender gender, City city,
+    public int verifyTeacher(String token, String name, String surname, String picture, Gender gender, City city,
                              String description, String subjects, Degree degree, String school, String university,
                              String specialty, ExperienceRequest[] experience) throws IOException, CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
@@ -220,6 +277,11 @@ public class UserService {
         teacher.setLastname(surname);
         teacher.setGender(gender);
         teacher.setCity(city);
+        if (picture == null) {
+            teacher.setPictureLocation("Assignment_301947782_0_number of mesoscopic papers.PNG");
+        } else {
+            teacher.setPictureLocation(picture);
+        }
         teacher.setDescription(description);
         teacher.setSpecialties(subjects);
         teacher.setDegree(degree);
@@ -293,7 +355,7 @@ public class UserService {
     }
 
     public TeacherResponse getTeacherPage(int teacherID, String token) throws CustomException {
-        Teacher teacher = (Teacher) userRepository.findUserById(teacherID);
+        Teacher teacher = teacherRepository.findTeacherById(teacherID);
         List<ReviewResponse> reviewResponses = new ArrayList<>();
         for (Review review : teacher.getReviews()) {
             ReviewResponse reviewResponse = new ReviewResponse(review);
@@ -342,8 +404,9 @@ public class UserService {
         student.setGender(Gender.valueOf(request.getGender()));
         student.setFirstname(request.getName());
         student.setLastname(request.getSurname());
-        String notifications = request.isClientService() + String.valueOf(request.isMarketingService())
-                + request.isReminders() + request.isChatNotifications() + request.isSavedCoursesNotifications();
+        String notifications = request.isClientService() + "," + request.isMarketingService()
+                + "," + request.isReminders() + "," + request.isChatNotifications() + ","
+                + request.isSavedCoursesNotifications();
         student.setNotificationModev2(notifications);
         student.setPictureLocation(request.getImageLocation());
         studentRepository.save(student);
@@ -393,7 +456,7 @@ public class UserService {
         for (Assignment assignment : student.getAssignments()) {
             CalendarResponse calendarResponse = CalendarResponse.builder().title(assignment.getTitle()).className("assignment")
                     .start(assignment.getDueDateTime().toString().replace(" ", "T").replace(".0", ""))
-                            .build();
+                    .build();
             responses.add(calendarResponse);
         }
         return responses;

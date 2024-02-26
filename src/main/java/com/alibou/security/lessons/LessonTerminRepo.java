@@ -36,6 +36,7 @@ public interface LessonTerminRepo extends JpaRepository<LessonTermin, Integer> {
                                                                   @Param("lowerBound") Timestamp lowerBound,
                                                                   @Param("upperBound") Timestamp upperBound);
 
+    //TODO Student grade case not covered
     @Query("""
             select c.lesson from LessonTermin c
                 where ((:searchTerm is null or c.lesson.title = :searchTerm)
@@ -43,7 +44,7 @@ public interface LessonTerminRepo extends JpaRepository<LessonTermin, Integer> {
                 or (:searchTerm3 is null or c.lesson.teacher.lastname = :searchTerm3))
                 and (:subject is null or c.lesson.subject = :subject)
                 and c.lesson.isDraft = :isDraft
-                and (:grade is null or c.lesson.grade = :grade)
+                and (:grade is null or :grade between c.lesson.grade and c.lesson.upperGrade)
                 and (c.lesson.price between :priceLowerBound and :priceUpperBound)
                 and (c.lessonHours between :hoursLowerBound and :hoursUpperBound)
                 and (c.dateTime between :lowerBound and :upperBound)

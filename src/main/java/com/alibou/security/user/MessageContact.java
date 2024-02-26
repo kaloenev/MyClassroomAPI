@@ -19,11 +19,13 @@ public class MessageContact {
     @Id
     @GeneratedValue
     private Integer messageID;
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    private boolean isRead;
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "teacher_id")
     @ToString.Exclude
     private Teacher teacher;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "student_id")
     @ToString.Exclude
     private Student student;

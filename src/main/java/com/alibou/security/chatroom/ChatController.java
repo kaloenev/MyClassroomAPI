@@ -1,8 +1,14 @@
 package com.alibou.security.chatroom;
 
 import com.alibou.security.exceptionHandling.CustomException;
+import com.alibou.security.exceptionHandling.CustomWarning;
+import com.alibou.security.user.MessageContact;
+import com.alibou.security.userFunctions.MessageContactsResponse;
 import com.alibou.security.userFunctions.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -24,21 +30,29 @@ public class ChatController {
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessage chatMessage) {
         try {
-            userService.sendMessage(Integer.parseInt(chatMessage.getSenderId()), chatMessage.getContent(),
-                    Integer.parseInt(chatMessage.getRecipientId()));
-            String dateTime = LocalDateTime.now().toString();
+            userService.sendMessage(chatMessage.getSenderId(), chatMessage.getContent(),
+                    Integer.parseInt(chatMessage.getRecipientId()), chatMessage.isFile());
+            MessageContactsResponse messageContactsResponse = userService.getLastContact("Bearer " + chatMessage.getSenderId());
             messagingTemplate.convertAndSendToUser(
                     chatMessage.getRecipientId(), "/queue/messages",
-                    new ChatNotification(
-                            chatMessage.getSenderId(),
-                            chatMessage.getRecipientId(),
-                            chatMessage.getContent(),
-                            dateTime.substring(5, 9).replace("-", "."),
-                            dateTime.substring(11, 16)
-                    )
+                    messageContactsResponse
             );
-        } catch (CustomException ignored) {
-
+        } catch (CustomException e) {
+            messagingTemplate.convertAndSendToUser(chatMessage.getRecipientId(), "/queue/messages",
+                    "Could not send message");
         }
     }
+
+    //TODO For testing only, pls remove
+//    @GetMapping("/sendMessage/{id}&&{recipId}&&{content}")
+//    public ResponseEntity<Object> sendMessage(@PathVariable int id, @PathVariable int recipId, @PathVariable String content) {
+//        try {
+//            userService.sendMessage(id, content, recipId, false);
+//        } catch (CustomException e) {
+//            e.printStackTrace();
+//            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+//        }
+//        return new ResponseEntity<>(HttpStatus.OK);
+//    }
 }

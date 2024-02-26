@@ -34,6 +34,7 @@ public class Lesson {
     private String imageLocation;
     @Column()
     private String grade;
+    private String upperGrade;
     @Column()
     private String subject;
     private String advantages;

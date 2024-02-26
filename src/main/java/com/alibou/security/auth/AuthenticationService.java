@@ -1,6 +1,8 @@
 package com.alibou.security.auth;
 
 import com.alibou.security.config.JwtService;
+import com.alibou.security.emailing.EmailDetails;
+import com.alibou.security.emailing.EmailService;
 import com.alibou.security.exceptionHandling.CustomException;
 import com.alibou.security.token.Token;
 import com.alibou.security.token.TokenRepository;
@@ -21,6 +23,7 @@ import java.io.IOException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +40,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     private final String resetUrl = "/api/v1/auth/resetPassword/validateToken/";
 
@@ -48,7 +52,9 @@ public class AuthenticationService {
             throw new CustomException(HttpStatus.BAD_REQUEST, "Incorrect role");
 
         if (!request.getEmail().contains("@")) throw new CustomException(HttpStatus.BAD_REQUEST, "Not a valid email");
-
+        if (repository.findByEmail(request.getEmail()).isPresent()) {
+            throw new CustomException(HttpStatus.CONFLICT, "Вече съществува профил с посочения имейл адрес");
+        }
         if (request.getRole().equals(Role.STUDENT)) {
             var user = Student.builder()
                     .username(request.getUsername())
@@ -73,9 +79,17 @@ public class AuthenticationService {
             refreshToken = jwtService.generateRefreshToken(user);
             saveUserToken(savedUser, jwtToken, false, Timestamp.valueOf(LocalDateTime.now()));
         }
+
+        EmailDetails emailDetails = new EmailDetails();
+        emailDetails.setRecipient(request.getEmail());
+        emailDetails.setSubject("Потвърждение на регистрация");
+        emailDetails.setMsgBody("Още не сме добавили линка във фронтенда да ти потвърждава имейла!");
+        emailService.sendSimpleMail(emailDetails);
+        //TODO Add email verification
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
+                .message("Изпратено е потвърждение за регистрацията на посочения от Вас имейл")
                 .build();
     }
 

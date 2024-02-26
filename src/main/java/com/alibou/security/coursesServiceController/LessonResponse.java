@@ -76,7 +76,7 @@ public class LessonResponse {
         studentsUpperBound = lesson.getStudentsUpperBound();
         rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
-        urlToImage = lesson.getImageLocation();
+        urlToImage = "http://localhost:8080/api/v1/users/images/" + lesson.getImageLocation();
         firstDate = dateTime;
         this.time = time;
         var teacher = lesson.getTeacher();
@@ -100,7 +100,7 @@ public class LessonResponse {
         studentsUpperBound = lesson.getStudentsUpperBound();
         rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
-        urlToImage = lesson.getImageLocation();
+        urlToImage = "http://localhost:8080/api/v1/users/images/" + lesson.getImageLocation();
         courseTerminRequests = new ArrayList<>();
         if (lesson.getThemas() != null) {
             themas = new ArrayList<>();
@@ -130,7 +130,7 @@ public class LessonResponse {
         this.privateLesson = lesson.isPrivateLesson();
     }
 
-    public LessonResponse(Lesson lesson, List<LessonTerminResponse> termins, List<ReviewResponse> reviews, ThemaSimpleResponse themaSimpleResponse) {
+    public LessonResponse(Lesson lesson, List<LessonTerminResponse> termins, List<ReviewResponse> reviews) {
         lessonID = lesson.getLessonID();
         title = lesson.getTitle();
         description = lesson.getDescription();
@@ -142,20 +142,19 @@ public class LessonResponse {
         studentsUpperBound = lesson.getStudentsUpperBound();
         rating = Math.round(lesson.getRating() * 100.0) / 100.0;
         numberOfReviews = lesson.getNumberOfReviews();
-        urlToImage = lesson.getImageLocation();
+        urlToImage = "http://localhost:8080/api/v1/users/images/" + lesson.getImageLocation();
         privateLessonTermins = termins;
         reviewResponses = reviews;
-        themas = new ArrayList<>();
-        themas.add(themaSimpleResponse);
         var teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
         this.privateLesson = lesson.isPrivateLesson();
     }
 
-    public LessonResponse(int lessonID, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
+    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
         courseTerminRequests = new ArrayList<>();
         courseTerminRequests.add(courseTerminRequestResponse);
+        this.urlToImage = "http://localhost:8080/api/v1/users/images/" + picture;
         this.lessonID = lessonID;
         this.title = title;
         this.privateLesson = privateLesson;
@@ -165,9 +164,10 @@ public class LessonResponse {
         this.teacherId = teacherId;
     }
 
-    public LessonResponse(int lessonID, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
+    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
         courseTerminRequests = new ArrayList<>();
         this.firstDate = date;
+        urlToImage = "http://localhost:8080/api/v1/users/images/" + picture;
         this.time = time;
         this.lessonID = lessonID;
         this.title = title;

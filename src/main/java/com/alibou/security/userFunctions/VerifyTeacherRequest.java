@@ -40,6 +40,7 @@ public class VerifyTeacherRequest {
     @NotNull
     @Size(min = 1)
     private String university;
+    private String picture;
     private String specialty;
     private ExperienceRequest[] experienceRequests;
 }

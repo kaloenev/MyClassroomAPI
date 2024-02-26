@@ -14,7 +14,8 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     //TODO find a way to remove drafts from results in next 2 queries
     List<Lesson> findTop12ByOrderByPopularityDesc();
 
-    List<Lesson> findTop4BySubjectOrGradeOrderByPopularityDesc(String subject, String grade);
+    @Query("select l from Lesson l where l.isDraft = false and (l.subject = :subject or l.grade = :grade) order by l.popularity DESC")
+    List<Lesson> getSimilarLessons(@Param("subject") String subject, @Param("grade") String grade);
 
     @Query("select l from Lesson l inner join l.isLikedByStudent isLikedByStudent where isLikedByStudent.id = :studentID")
     Page<Lesson> getLessonByisLikedByStudent_id(@Param("studentID") int studentID, Pageable pageable);

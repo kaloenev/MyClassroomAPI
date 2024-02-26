@@ -73,10 +73,20 @@ public class UserController {
         }
     }
 
-    @GetMapping("/getMessage/{id}")
-    public ResponseEntity<Object> getMessages(HttpServletRequest httpRequest, @PathVariable int id) {
+    @GetMapping("/getMessageFromMessageTab/{messageid}")
+    public ResponseEntity<Object> getMessagesFromMessageTab(HttpServletRequest httpRequest, @PathVariable int messageid) {
         try {
-            return ResponseEntity.ok(userService.getMessages(httpRequest.getHeader("Authorization"), id));
+            return ResponseEntity.ok(userService.getMessages(httpRequest.getHeader("Authorization"), messageid, true));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+    @GetMapping("/getMessage/{userid}")
+    public ResponseEntity<Object> getMessages(HttpServletRequest httpRequest, @PathVariable int userid) {
+        try {
+            return ResponseEntity.ok(userService.getMessages(httpRequest.getHeader("Authorization"), userid, false));
         } catch (CustomException e) {
             e.printStackTrace();
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
@@ -141,7 +151,7 @@ public class UserController {
         int teacherId;
         try {
             teacherId = userService.verifyTeacher(httpRequest.getHeader("Authorization"), request.getName(), request.getSurname(),
-                    request.getGender(), request.getCity(), request.getDescription(), request.getSubjects(),
+                    request.getPicture(), request.getGender(), request.getCity(), request.getDescription(), request.getSubjects(),
                     request.getDegree(), request.getSchool(), request.getUniversity(), request.getSpecialty(), request.getExperienceRequests());
         } catch (IOException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());

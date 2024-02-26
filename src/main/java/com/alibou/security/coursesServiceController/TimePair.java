@@ -12,5 +12,6 @@ import lombok.Setter;
 public class TimePair {
     private int lessonTerminId;
     private String time;
+    private String fullTime;
     private boolean isBooked;
 }

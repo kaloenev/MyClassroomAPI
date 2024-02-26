@@ -57,6 +57,7 @@ public class TeacherResponse {
         this.experience = teacher.getExperience();
         this.lessonResponses = new ArrayList<>();
         for (var lesson : teacher.getLessons()) {
+            if (lesson.isDraft()) continue;
             if (lesson.isPrivateLesson()) {
                 List<LessonTermin> termins = lesson.getLessonTermins();
                 lessonResponses.add(new LessonResponse(lesson, termins.get(0).getDate(), termins.get(0).getTime(), 0));
