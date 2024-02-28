@@ -147,6 +147,17 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getCourseImages/{subject}")
+    public ResponseEntity<Object> getCourseImages(@PathVariable String subject) {
+        //TODO Add authentication?
+        try {
+            return ResponseEntity.ok(courseService.getImagesBySubject(subject));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @PostMapping("/getFilteredClasses")
     public ResponseEntity<Object> getFilteredCourses(@RequestBody FilterRequest filterRequest, HttpServletRequest httpRequest) {
         try {
@@ -243,7 +254,7 @@ public class CourseController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         Path newFile;
-        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
+        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ",""));
         try {
             Files.copy(requestFiles[0].getInputStream(), newFile);
             courseService.addResource(id, httpRequest.getHeader("Authorization"), newFile.toString());
@@ -348,7 +359,7 @@ public class CourseController {
 //        String paths;
 //        StringBuilder pathBuilder = new StringBuilder();
             Path newFile;
-            newFile = Paths.get("Assignment_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
+            newFile = Paths.get("Assignment_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ",""));
             try {
                 Files.copy(requestFiles[0].getInputStream(), newFile);
             } catch (IOException e) {
@@ -404,6 +415,11 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getPictures/{grade}")
+    public ResponseEntity<Object> getPictures(@PathVariable String grade, HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(courseService.getPicturesByGrade(httpRequest.getHeader("Authorization"), grade));
+    }
+
     @PostMapping("/uploadSolutionFiles/{id}")
     public ResponseEntity<Object> uploadSolutionFiles(@PathVariable int id, @RequestParam("requestFiles") MultipartFile[] requestFiles,
                                                       HttpServletRequest httpRequest) {
@@ -413,7 +429,7 @@ public class CourseController {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите до 4 файла");
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-            newFile = Paths.get("Solution" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
+            newFile = Paths.get("Solution" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ",""));
             try {
                 Files.copy(requestFiles[0].getInputStream(), newFile);
             } catch (IOException e) {

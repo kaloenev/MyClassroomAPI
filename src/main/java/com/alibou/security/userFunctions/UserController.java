@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -140,6 +141,30 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @GetMapping("/getTeacherProfile")
+    public ResponseEntity<Object> getTeacherProfile(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(userService.getTeacherProfile(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    @PostMapping("/editTeacherProfile")
+    public ResponseEntity<Object> editTeacherProfile(@RequestBody TeacherProfileRequest request,
+                                                     HttpServletRequest httpRequest) {
+        try {
+            userService.editTeacherProfile(request, httpRequest.getHeader("Authorization"));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @GetMapping("/verifyTeacher/form")
     public ResponseEntity<Object> getVerificationForm() {
         return ResponseEntity.ok(userService.getVerificationForm());
@@ -178,7 +203,7 @@ public class UserController {
                     return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
                 }
                 Path newFile;
-                newFile = Paths.get("Student_Image_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
+                newFile = Paths.get("Student_Image_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ", ""));
                 filenameCounter++;
                 Files.copy(requestFiles[0].getInputStream(), newFile);
                 userService.saveStudentImage(httpRequest.getHeader("Authorization"), newFile.toString());
@@ -295,7 +320,7 @@ public class UserController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         Path newFile;
-        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename());
+        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ", ""));
         filenameCounter++;
         try {
             Files.copy(requestFiles[0].getInputStream(), newFile);

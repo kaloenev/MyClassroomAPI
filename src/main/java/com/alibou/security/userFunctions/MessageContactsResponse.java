@@ -21,4 +21,5 @@ public class MessageContactsResponse {
     private String date;
     private String time;
     private boolean isFile;
+    private boolean isRead;
 }

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -159,7 +160,7 @@ public class CourseService {
         lesson.setSubject(courseRequest.getSubject());
         lesson.setGrade(courseRequest.getGrade());
         if (courseRequest.getImageLocation() == null) {
-            lesson.setImageLocation("Assignment_301947782_0_number of mesoscopic papers.PNG");
+            lesson.setImageLocation("Assignment_301947782_0_number_of_mesoscopic_papers.PNG");
         } else {
             lesson.setImageLocation(courseRequest.getImageLocation());
         }
@@ -304,7 +305,7 @@ public class CourseService {
         lesson.setGrade(courseRequest.getGrade());
         lesson.setDescription(courseRequest.getDescription());
         if (courseRequest.getImageLocation() == null) {
-            lesson.setImageLocation("Assignment_301947782_0_number of mesoscopic papers.PNG");
+            lesson.setImageLocation("Assignment_301947782_0_number_of_mesoscopic_papers.PNG");
         } else {
             lesson.setImageLocation(courseRequest.getImageLocation());
         }
@@ -516,6 +517,19 @@ public class CourseService {
         terminRepo.deleteById(terminID);
     }
 
+    public String[] getImagesBySubject(String subject) throws CustomException {
+        File[] files = new File(subject).listFiles();
+        if (files.length == 0) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Нямаме снимки за този предмет все още");
+        }
+        String[] fileNames = new String[files.length];
+        int counter = 0;
+        for (File file : files) {
+            fileNames[counter] = "http://localhost:8080/api/v1/users/images/" + file.getPath();
+        }
+        return fileNames;
+    }
+
     public HomePageResponse getHomePageInfo(String token) throws CustomException {
         // TODO Maybe find fix for drafts not to be shown
         List<Lesson> lessons = lessonRepository.findTop12ByOrderByPopularityDesc();
@@ -619,6 +633,14 @@ public class CourseService {
         filterResponse.setGrades(grades);
         filterResponse.setSubjects(subjects);
         return filterResponse;
+    }
+
+    public String[] getPicturesByGrade(String token, String grade) {
+        String[] pictures = new String[5];
+        for (int i = 0; i < 5; i++) {
+            pictures[i] = grade + "_" + i;
+        }
+        return pictures;
     }
 
     public PagedResponse getFilteredLessons(FilterRequest request, String token) throws IllegalArgumentException, CustomException {

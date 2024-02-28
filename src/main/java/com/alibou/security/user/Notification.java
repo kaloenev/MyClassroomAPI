@@ -22,6 +22,7 @@ public class Notification {
     private Integer notificationID;
     private Timestamp dateTime;
     private String message;
+    private boolean isChat;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @ToString.Exclude

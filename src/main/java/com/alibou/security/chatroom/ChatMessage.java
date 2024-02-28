@@ -14,4 +14,6 @@ public class ChatMessage {
     private String recipientId;
     private String content;
     private boolean isFile;
+    private String date;
+    private String time;
 }

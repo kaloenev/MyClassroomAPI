@@ -9,9 +9,15 @@ import java.util.List;
 public interface MessageContactRepo extends JpaRepository<MessageContact, Integer> {
     MessageContact getMessageContactByMessageID(int id);
 
-    MessageContact getMessageContactByStudent_Id(int id);
+    @Query("""
+            select m from MessageContact m inner join m.teacher.tokens tokens
+            where m.student.id = :id and tokens.token = :token""")
+    MessageContact getMessageContactByStudent_IdAndTeacher_Tokens_Token(@Param("id") int id, @Param("token") String token);
 
-    MessageContact getMessageContactByTeacher_Id(int id);
+    @Query("""
+            select m from MessageContact m inner join m.student.tokens tokens
+            where m.teacher.id = :id and tokens.token = :token""")
+    MessageContact getMessageContactByTeacher_IdAndStudent_Tokens_Token(@Param("id") int id, @Param("token") String token);
 
     @Query("select m from MessageContact m inner join m.messages messages where m.teacher.id = :id order by messages.dateTime")
     List<MessageContact> getMessageContactsByTeacher_Id(@Param("id") int id);

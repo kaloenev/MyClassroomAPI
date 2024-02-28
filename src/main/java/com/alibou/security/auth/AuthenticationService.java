@@ -61,6 +61,7 @@ public class AuthenticationService {
                     .email(request.getEmail())
                     .password(passwordEncoder.encode(request.getPassword()))
                     .role(request.getRole())
+                    .pictureLocation("default_image.jpg")
                     .build();
             var savedUser = studentRepository.save(user);
             jwtToken = jwtService.generateToken(user);
@@ -72,6 +73,7 @@ public class AuthenticationService {
                     .email(request.getEmail())
                     .password(passwordEncoder.encode(request.getPassword()))
                     .role(request.getRole())
+                    .pictureLocation("default_image.jpg")
                     .isEnabled(true)
                     .build();
             var savedUser = teacherRepository.save(user);
