@@ -14,7 +14,6 @@ public class StudentProfileResponse {
     private String name;
     private String surname;
     private String gender;
-    private String imageLocation;
     private String[] pictures;
     private boolean clientService;
     private boolean marketingService;

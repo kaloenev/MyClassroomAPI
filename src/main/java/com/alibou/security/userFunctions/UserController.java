@@ -74,6 +74,17 @@ public class UserController {
         }
     }
 
+    @GetMapping("/getContactWithName/{searchTerm}")
+    public ResponseEntity<Object> getContactWithName(HttpServletRequest httpRequest, @PathVariable String searchTerm) {
+        try {
+            return ResponseEntity.ok(userService.getContactsWithName(httpRequest.getHeader("Authorization"), searchTerm));
+        } catch (CustomException e) {
+            e.printStackTrace();
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @GetMapping("/getMessageFromMessageTab/{messageid}")
     public ResponseEntity<Object> getMessagesFromMessageTab(HttpServletRequest httpRequest, @PathVariable int messageid) {
         try {
@@ -191,23 +202,25 @@ public class UserController {
     }
     //TODO Add image urls in all the endpoints
 
-    @PostMapping("/uploadImageStudent/{imageId}")
-    public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile[] requestFiles, @PathVariable int imageId,
+    @PostMapping("/uploadImageStudent")
+    public ResponseEntity<Object> setStudentImage(@RequestParam("file") MultipartFile[] requestFiles,
                                                   HttpServletRequest httpRequest) {
         try {
-            if (imageId > 0 && imageId < 5) {
-                userService.saveStudentImage(httpRequest.getHeader("Authorization"), defaultImagePath + imageId);
-            } else {
+//            if (imageId > 0 && imageId < 5) {
+//                userService.saveStudentImage(httpRequest.getHeader("Authorization"), defaultImagePath + imageId);
+//            }
+//            else {
                 if (requestFiles.length > 1) {
                     CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Може да качите само един файл");
                     return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
                 }
                 Path newFile;
-                newFile = Paths.get("Student_Image_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ", ""));
+                newFile = Paths.get("src/main/resources/images/Student_" + UUID.randomUUID().toString() + "_"
+                        + requestFiles[0].getOriginalFilename().replace(" ", "_"));
                 filenameCounter++;
                 Files.copy(requestFiles[0].getInputStream(), newFile);
                 userService.saveStudentImage(httpRequest.getHeader("Authorization"), newFile.toString());
-            }
+//            }
         } catch (IOException e) {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
@@ -320,7 +333,8 @@ public class UserController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         Path newFile;
-        newFile = Paths.get("Resource_" + UUID.randomUUID().toString() + "_" + requestFiles[0].getOriginalFilename().replace(" ", ""));
+        newFile = Paths.get("src/main/resources/images/Teacher_" + UUID.randomUUID().toString() + "_"
+                + requestFiles[0].getOriginalFilename().replace(" ", "_"));
         filenameCounter++;
         try {
             Files.copy(requestFiles[0].getInputStream(), newFile);
@@ -332,8 +346,11 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @GetMapping("/images/{filename}")
-    public Resource getImage(@PathVariable String filename) throws CustomException, MalformedURLException {
+    @GetMapping("/images/**")
+    public Resource getImage(HttpServletRequest httpServletRequest) throws CustomException, MalformedURLException {
+        String filename = httpServletRequest.getRequestURI()
+                .split(httpServletRequest.getContextPath() + "/images/")[1] + "/images" +
+                httpServletRequest.getRequestURI().split(httpServletRequest.getContextPath() + "/images")[2];
         Path imagePath = Paths.get(filename);
         Resource resource = new UrlResource(imagePath.toUri());
 

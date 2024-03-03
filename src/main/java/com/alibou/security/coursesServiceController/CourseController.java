@@ -382,8 +382,11 @@ public class CourseController {
         return ResponseEntity.ok(newFile.toString());
     }
 
-    @GetMapping("/images/{filename}")
-    public Resource getImage(@PathVariable String filename) throws CustomException, MalformedURLException {
+    @GetMapping("/images/**")
+    public Resource getImage(HttpServletRequest httpServletRequest) throws CustomException, MalformedURLException {
+        String filename = httpServletRequest.getRequestURI()
+                .split(httpServletRequest.getContextPath() + "/images/")[1] + "/images" +
+                httpServletRequest.getRequestURI().split(httpServletRequest.getContextPath() + "/images")[2];
         Path imagePath = Paths.get(filename);
         Resource resource = new UrlResource(imagePath.toUri());
 

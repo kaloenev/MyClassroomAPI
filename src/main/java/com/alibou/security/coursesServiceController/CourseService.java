@@ -160,9 +160,9 @@ public class CourseService {
         lesson.setSubject(courseRequest.getSubject());
         lesson.setGrade(courseRequest.getGrade());
         if (courseRequest.getImageLocation() == null) {
-            lesson.setImageLocation("Assignment_301947782_0_number_of_mesoscopic_papers.PNG");
+            lesson.setImageLocation(null);
         } else {
-            lesson.setImageLocation(courseRequest.getImageLocation());
+            lesson.setImageLocation(courseRequest.getImageLocation().replace("http://localhost:8080/api/v1/users/images/", ""));
         }
         lesson.setDescription(courseRequest.getDescription());
         lesson.setLength(courseRequest.getLength());
@@ -305,9 +305,9 @@ public class CourseService {
         lesson.setGrade(courseRequest.getGrade());
         lesson.setDescription(courseRequest.getDescription());
         if (courseRequest.getImageLocation() == null) {
-            lesson.setImageLocation("Assignment_301947782_0_number_of_mesoscopic_papers.PNG");
+            lesson.setImageLocation(null);
         } else {
-            lesson.setImageLocation(courseRequest.getImageLocation());
+            lesson.setImageLocation(courseRequest.getImageLocation().replace("http://localhost:8080/api/v1/users/images/", ""));
         }
         lesson.setLength(courseRequest.getLength());
         lesson.setPrivateLesson(isPrivateLesson);
@@ -517,18 +517,22 @@ public class CourseService {
         terminRepo.deleteById(terminID);
     }
 
-    public String[] getImagesBySubject(String subject) throws CustomException {
-        File[] files = new File(subject).listFiles();
-        if (files.length == 0) {
+    public List<String> getImagesBySubject(String subject) throws CustomException {
+        File[] files = new File("src/main/resources/images/" + subject).listFiles();
+        if (files == null || files.length == 0) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "Нямаме снимки за този предмет все още");
         }
-        String[] fileNames = new String[files.length];
-        int counter = 0;
+        List<String> fileNames = new ArrayList<>();
         for (File file : files) {
-            fileNames[counter] = "http://localhost:8080/api/v1/users/images/" + file.getPath();
+            String path = file.getPath();
+            if (path.endsWith(".jpg") || path.endsWith(".png") || path.endsWith(".jpeg")) {
+                fileNames.add("http://localhost:8080/api/v1/users/images/" + path.replace("\\", "/"));
+            }
         }
         return fileNames;
     }
+
+    //TODO Add draft publishing conditions and course creation conditions for the presence of an image
 
     public HomePageResponse getHomePageInfo(String token) throws CustomException {
         // TODO Maybe find fix for drafts not to be shown

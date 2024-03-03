@@ -23,4 +23,12 @@ public interface MessageContactRepo extends JpaRepository<MessageContact, Intege
     List<MessageContact> getMessageContactsByTeacher_Id(@Param("id") int id);
     @Query("select m from MessageContact m inner join m.messages messages where m.student.id = :id order by messages.dateTime")
     List<MessageContact> getMessageContactsByStudent_Id(@Param("id") int id);
+
+    //TODO Add case for both names in searchTerm
+    @Query("select m from MessageContact m inner join m.messages messages where m.teacher.id = :id and " +
+            "(m.student.firstname = :searchTerm or m.student.lastname = :searchTerm) order by messages.dateTime")
+    List<MessageContact> getMessageContactsByTeacher_IdAndSearch(@Param("id") int id, @Param("searchTerm") String searchTerm);
+    @Query("select m from MessageContact m inner join m.messages messages where m.student.id = :id and " +
+            "(m.teacher.firstname = :searchTerm or m.teacher.lastname = :searchTerm) order by messages.dateTime")
+    List<MessageContact> getMessageContactsByStudent_IdAndSearch(@Param("id") int id, @Param("searchTerm") String searchTerm);
 }

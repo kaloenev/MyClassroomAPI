@@ -112,6 +112,56 @@ public class UserService {
         return responses;
     }
 
+    public List<MessageContactsResponse> getContactsWithName(String token, String searchTerm) throws CustomException {
+        Student student = studentRepository.findStudentByTokens_token(token.substring(7));
+        Teacher teacher;
+        List<MessageContact> contacts;
+        if (student == null) {
+            teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+            if (teacher == null) throw new CustomException(HttpStatus.FORBIDDEN, "Моля логнете се отново");
+            contacts = messageContactRepo.getMessageContactsByTeacher_IdAndSearch(teacher.getId(), searchTerm);
+        } else {
+            contacts = messageContactRepo.getMessageContactsByStudent_IdAndSearch(student.getId(), searchTerm);
+        }
+        List<MessageContactsResponse> responses = new ArrayList<>();
+        for (MessageContact contact : contacts) {
+            Message message = messageRepo.findTopByContact_MessageIDOrderByDateTimeDesc(contact.getMessageID());
+            MessageContactsResponse messageContactsResponse;
+            if (student == null) {
+                //TODO Add dates as well if the message is not from today
+                String name;
+                if (contact.getStudent().getFirstname() == null) {
+                    name = String.valueOf(contact.getStudent().getId());
+                }
+                else {
+                    name = contact.getStudent().getFirstname() + " " + contact.getStudent().getLastname();
+                }
+                messageContactsResponse = MessageContactsResponse.builder().receiverId(contact.getStudent().getId())
+                        .name(name).dateTime(message.getDateTime().toString())
+                        .picture("http://localhost:8080/api/v1/users/images/" + contact.getStudent().getPictureLocation())
+                        .content(message.getContent()).isRead(contact.isRead())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getStudent().getId().toString())
+                        .senderId(contact.getTeacher().getId().toString()).isFile(message.isFile()).build();
+            } else {
+                String name;
+                if (contact.getTeacher().getFirstname() == null) {
+                    name = String.valueOf(contact.getTeacher().getId());
+                }
+                else {
+                    name = contact.getTeacher().getFirstname() + " " + contact.getTeacher().getLastname();
+                }
+                messageContactsResponse = MessageContactsResponse.builder().receiverId(contact.getTeacher().getId())
+                        .name(name).dateTime(message.getDateTime().toString())
+                        .picture("http://localhost:8080/api/v1/users/images/" + contact.getTeacher().getPictureLocation())
+                        .content(message.getContent()).isRead(contact.isRead())
+                        .date(message.getDate()).time(message.getTime()).recipientId(contact.getTeacher().getId().toString())
+                        .senderId(contact.getStudent().getId().toString()).isFile(message.isFile()).build();
+            }
+            responses.add(messageContactsResponse);
+        }
+        return responses;
+    }
+
     //TODO Find better option for single contact query
     public MessageContactsResponse getLastContact(String token) throws CustomException {
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
@@ -460,7 +510,7 @@ public class UserService {
                 + "," + request.isReminders() + "," + request.isChatNotifications() + ","
                 + request.isSavedCoursesNotifications();
         student.setNotificationModev2(notifications);
-        student.setPictureLocation(request.getImageLocation());
+        student.setPictureLocation(request.getImageLocation().replace("http://localhost:8080/api/v1/users/images/", ""));
         studentRepository.save(student);
     }
 
@@ -474,19 +524,19 @@ public class UserService {
         if (student.getPictureLocation() != null) pictureLocation = "http://localhost:8080/api/v1/users/images/"
                 + student.getPictureLocation();
         else {
-            pictureLocation = "http://localhost:8080/api/v1/users/images/default_image.jpg";
+            pictureLocation = "http://localhost:8080/api/v1/users/images/src/main/resources/images/default_image.jpg";
         }
         if (student.getNotificationModev2() != null) notifications = student.getNotificationModev2().split(",");
         if (student.getGender() != null) gender = student.getGender().toString();
         if (student.getFirstname() != null) name = student.getFirstname();
         if (student.getLastname() != null) surname = student.getLastname();
-        String[] pictures = new String[]{"http://localhost:8080/api/v1/users/images/Avatar_01.png",
-                "http://localhost:8080/api/v1/users/images/Avatar_02.png",
-                "http://localhost:8080/api/v1/users/images/Avatar_03.png",
-                "http://localhost:8080/api/v1/users/images/Avatar_04.png",
-                "http://localhost:8080/api/v1/users/images/Avatar_05.png",
-                "http://localhost:8080/api/v1/users/images/Avatar_06.png"};
-        return new StudentProfileResponse(student.getId(), name, surname, gender, pictureLocation, pictures,
+        String[] pictures = new String[]{pictureLocation, "http://localhost:8080/api/v1/users/images/src/main/resources/images/Avatar_01.png",
+                "http://localhost:8080/api/v1/users/images/src/main/resources/images/Avatar_02.png",
+                "http://localhost:8080/api/v1/users/images/src/main/resources/images/Avatar_03.png",
+                "http://localhost:8080/api/v1/users/images/src/main/resources/images/Avatar_04.png",
+                "http://localhost:8080/api/v1/users/images/src/main/resources/images/Avatar_05.png",
+                "http://localhost:8080/api/v1/users/images/src/main/resources/images/Avatar_06.png"};
+        return new StudentProfileResponse(student.getId(), name, surname, gender, pictures,
                 Boolean.parseBoolean(notifications[0]), Boolean.parseBoolean(notifications[1]),
                 Boolean.parseBoolean(notifications[2]), Boolean.parseBoolean(notifications[3]),
                 Boolean.parseBoolean(notifications[4]));
@@ -503,7 +553,7 @@ public class UserService {
                 + "," + request.isReminders() + "," + request.isChatNotifications() + ","
                 + request.isSavedCoursesNotifications();
         teacher.setNotificationModev2(notifications);
-        teacher.setPictureLocation(request.getImageLocation());
+        teacher.setPictureLocation(request.getImageLocation().replace("http://localhost:8080/api/v1/users/images/", ""));
         teacherRepository.save(teacher);
     }
 
@@ -519,7 +569,7 @@ public class UserService {
         if (teacher.getPictureLocation() != null) pictureLocation = "http://localhost:8080/api/v1/users/images/"
                 + teacher.getPictureLocation();
         else {
-            pictureLocation = "http://localhost:8080/api/v1/users/images/default_image.jpg";
+            pictureLocation = "http://localhost:8080/api/v1/users/images/src/main/resources/images/default_image.jpg";
         }
         if (teacher.getNotificationModev2() != null) notifications = teacher.getNotificationModev2().split(",");
         if (teacher.getGender() != null) gender = teacher.getGender().toString();
