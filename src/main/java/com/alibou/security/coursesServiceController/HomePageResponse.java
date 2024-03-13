@@ -13,5 +13,6 @@ import java.util.List;
 @AllArgsConstructor
 public class HomePageResponse {
     private List<LessonResponse> popularLessonsResponse;
+    private List<LessonResponse> popularCourseResponse;
     private List<ReviewResponse> reviewsResponse;
 }

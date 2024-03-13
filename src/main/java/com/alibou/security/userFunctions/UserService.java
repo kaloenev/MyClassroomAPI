@@ -5,25 +5,17 @@ import com.alibou.security.coursesServiceController.*;
 import com.alibou.security.emailing.EmailDetails;
 import com.alibou.security.emailing.EmailService;
 import com.alibou.security.exceptionHandling.CustomException;
-import com.alibou.security.lessons.Assignment;
-import com.alibou.security.lessons.CourseTermin;
-import com.alibou.security.lessons.Lesson;
-import com.alibou.security.lessons.LessonTermin;
+import com.alibou.security.lessons.*;
 import com.alibou.security.token.TokenRepository;
 import com.alibou.security.user.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.Hibernate;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,6 +40,10 @@ public class UserService {
 
     private List<ChatUser> chatUsers;
     private final SimpMessagingTemplate messagingTemplate;
+
+    private final CourseTerminRepo courseTerminRepo;
+
+    private final LessonTerminRepo lessonTerminRepo;
 
 
     public void saveUser(ChatUser user) {
@@ -279,7 +275,7 @@ public class UserService {
 //                    teacher.saveMessage(messageContact);
                     foundContact = true;
                     messagingTemplate.convertAndSendToUser(
-                            userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/messages",
+                            userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/notifications",
                             NotificationResponse.builder().isChat(true).content(content).build()
                     );
                     break;
@@ -301,7 +297,7 @@ public class UserService {
                 message.setFile(isFile);
                 messageRepo.save(message);
                 messagingTemplate.convertAndSendToUser(
-                        userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/messages",
+                        userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/notifications",
                         NotificationResponse.builder().isChat(true).content(content).build()
                 );
 //                messageContact.setMessages(messages);
@@ -330,7 +326,7 @@ public class UserService {
 //                    teacher.saveMessage(messageContact);
                     foundContact = true;
                     messagingTemplate.convertAndSendToUser(
-                            userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/messages",
+                            userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/notifications",
                             NotificationResponse.builder().isChat(true).content(content).build()
                     );
                     break;
@@ -352,7 +348,7 @@ public class UserService {
 //                messages.add(message);
                 messageRepo.save(message);
                 messagingTemplate.convertAndSendToUser(
-                        userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/messages",
+                        userRepository.findLastToken(receiverID).get(0).getToken(), "/queue/notifications",
                         NotificationResponse.builder().isChat(true).content(content).build()
                 );
 //                messageContact.setMessages(messages);
@@ -477,24 +473,25 @@ public class UserService {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher != null) {
             if (teacher.isVerified()) {
-                return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
-                        teacher.getRole().toString(),
+                return new UserResponse(teacher.getId(), teacher.getEmail(), teacher.getFirstname(),
+                        teacher.getLastname(), teacher.getRole().toString(),
                         "http://localhost:8080/api/v1/users/images/" +  teacher.getPictureLocation(),
                         teacher.isVerified(), true);
             } else if (teacher.getTimeOfVerificationRequest() != null) {
-                return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
-                        teacher.getRole().toString(),
+                return new UserResponse(teacher.getId(), teacher.getEmail(), teacher.getFirstname(),
+                        teacher.getLastname(), teacher.getRole().toString(),
                         "http://localhost:8080/api/v1/users/images/" +  teacher.getPictureLocation(),
                         false, true);
             } else {
-                return new UserResponse(teacher.getId(), teacher.getFirstname(), teacher.getLastname(),
+                return new UserResponse(teacher.getId(), teacher.getEmail(), teacher.getFirstname(), teacher.getLastname(),
                         teacher.getRole().toString(),
                         "http://localhost:8080/api/v1/users/images/" +  teacher.getPictureLocation(),
                         false, false);
             }
         } else {
             User user = userRepository.findUserByTokens_token(token.substring(7));
-            return new UserResponse(user.getId(), user.getFirstname(), user.getLastname(), user.getRole().toString(),
+            return new UserResponse(user.getId(), user.getEmail(), user.getFirstname(), user.getLastname(),
+                    user.getRole().toString(),
                     "http://localhost:8080/api/v1/users/images/" + user.getPictureLocation(),
                     true, true);
         }
@@ -577,7 +574,7 @@ public class UserService {
         if (teacher.getLastname() != null) surname = teacher.getLastname();
         if (teacher.getDescription() != null) description = teacher.getDescription();
         if (teacher.getSpecialties() != null) subjects = teacher.getSpecialties();
-        return new TeacherProfileResponse(teacher.getId(), name, surname, gender, subjects, description, pictureLocation,
+        return new TeacherProfileResponse(teacher.getId(), name, surname, gender, description, subjects, pictureLocation,
                 Boolean.parseBoolean(notifications[0]), Boolean.parseBoolean(notifications[1]),
                 Boolean.parseBoolean(notifications[2]), Boolean.parseBoolean(notifications[3]),
                 Boolean.parseBoolean(notifications[4]));
@@ -588,8 +585,8 @@ public class UserService {
         //TODO Add multiple dates for courses in the calendar
         Student student = studentRepository.findStudentByTokens_token(token.substring(7));
         List<CalendarResponse> responses = new ArrayList<>();
-        List<CourseTermin> courseTermins = student.getCourses();
-        List<LessonTermin> lessonTermins = student.getPrivateLessons();
+        List<CourseTermin> courseTermins = courseTerminRepo.getCourseTerminsByEnrolledStudents_id(student.getId());
+        List<LessonTermin> lessonTermins = lessonTerminRepo.getLessonTerminsByStudent_Id(student.getId());
         for (CourseTermin courseTermin : courseTermins) {
             Lesson lesson = courseTermin.getLesson();
             CalendarResponse calendarResponse = CalendarResponse.builder().title(lesson.getTitle()).className("course")
@@ -707,7 +704,7 @@ public class UserService {
             if (elementCounter >= page * 6 - 6) {
                 TeacherResponse teacherResponse = TeacherResponse.builder().id(teacher.getId()).firstName(teacher.getFirstname())
                         .secondName(teacher.getLastname()).numberOfReviews(teacher.getNumberOfReviews()).rating(teacher.getRating())
-                        .specialties(teacher.getSpecialties()).build();
+                        .specialties(teacher.getSpecialties()).isLikedByStudent(true).build();
                 teacherResponses.add(teacherResponse);
             }
             elementCounter++;

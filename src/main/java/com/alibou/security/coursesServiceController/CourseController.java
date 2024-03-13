@@ -709,6 +709,16 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/getCourseByTermin/{id}")
+    public ResponseEntity<Object> getCourseByTermin(@PathVariable int id) {
+        try {
+            return ResponseEntity.ok(courseService.getLessonByTerminId(id));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @GetMapping("/getCourseInformation/{id}")
     public ResponseEntity<Object> getCourseInformation(@PathVariable int id, HttpServletRequest httpRequest) {
         try {

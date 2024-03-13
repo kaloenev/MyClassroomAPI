@@ -22,6 +22,8 @@ public class TeacherResponse {
     private String specialties;
     private String firstName;
 
+    private String picture;
+
     private String location;
     private String secondName;
     private String description;
@@ -36,6 +38,7 @@ public class TeacherResponse {
         this.id = teacher.getId();
         this.numberOfReviews = teacher.getNumberOfReviews();
         this.rating = Math.round(teacher.getRating() * 100.0) / 100.0;
+        this.picture = "http://localhost:8080/api/v1/users/images/" + teacher.getPictureLocation();
         this.specialties = teacher.getSpecialties();
         this.firstName = teacher.getFirstname();
         this.secondName = teacher.getLastname();
@@ -47,6 +50,7 @@ public class TeacherResponse {
     public TeacherResponse(Teacher teacher, List<ReviewResponse> reviewResponses) throws CustomException {
         this.id = teacher.getId();
         this.numberOfReviews = teacher.getNumberOfReviews();
+        this.picture = "http://localhost:8080/api/v1/users/images/" + teacher.getPictureLocation();
         this.rating = Math.round(teacher.getRating() * 100.0) / 100.0;
         this.specialties = teacher.getSpecialties();
         this.description = teacher.getDescription();

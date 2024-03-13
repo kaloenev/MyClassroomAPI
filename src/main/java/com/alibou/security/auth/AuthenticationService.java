@@ -46,7 +46,7 @@ public class AuthenticationService {
 
     public AuthenticationResponse register(RegisterRequest request) throws CustomException {
         String jwtToken;
-        String refreshToken;
+//        String refreshToken;
         if (!(request.getRole().equals(Role.STUDENT) || request.getRole().equals(Role.TEACHER)
                 || request.getRole().equals(Role.ADMIN)))
             throw new CustomException(HttpStatus.BAD_REQUEST, "Incorrect role");
@@ -55,6 +55,7 @@ public class AuthenticationService {
         if (repository.findByEmail(request.getEmail()).isPresent()) {
             throw new CustomException(HttpStatus.CONFLICT, "Вече съществува профил с посочения имейл адрес");
         }
+        User savedUser;
         if (request.getRole().equals(Role.STUDENT)) {
             var user = Student.builder()
                     .username(request.getUsername())
@@ -63,9 +64,9 @@ public class AuthenticationService {
                     .role(request.getRole())
                     .pictureLocation("src/main/resources/images/default_image.jpg")
                     .build();
-            var savedUser = studentRepository.save(user);
+            savedUser = studentRepository.save(user);
             jwtToken = jwtService.generateToken(user);
-            refreshToken = jwtService.generateRefreshToken(user);
+//            refreshToken = jwtService.generateRefreshToken(user);
             saveUserToken(savedUser, jwtToken, false, Timestamp.valueOf(LocalDateTime.now()));
         } else {
             var user = Teacher.builder()
@@ -76,12 +77,13 @@ public class AuthenticationService {
                     .pictureLocation("src/main/resources/images/default_image.jpg")
                     .isEnabled(true)
                     .build();
-            var savedUser = teacherRepository.save(user);
+            savedUser = teacherRepository.save(user);
             jwtToken = jwtService.generateToken(user);
-            refreshToken = jwtService.generateRefreshToken(user);
+//            refreshToken = jwtService.generateRefreshToken(user);
             saveUserToken(savedUser, jwtToken, false, Timestamp.valueOf(LocalDateTime.now()));
         }
-
+        String verificationToken = UUID.randomUUID().toString();
+        savedUser.setResetToken(verificationToken);
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setRecipient(request.getEmail());
         emailDetails.setSubject("Потвърждение на регистрация");
@@ -90,7 +92,7 @@ public class AuthenticationService {
         //TODO Add email verification
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
-                .refreshToken(refreshToken)
+//                .refreshToken(refreshToken)
                 .message("Изпратено е потвърждение за регистрацията на посочения от Вас имейл")
                 .build();
     }

@@ -70,7 +70,9 @@ public class AuthenticationController {
 
     @GetMapping("/resetPassword/validateToken/{token}")
     public ResponseEntity<Object> validateResetToken(@PathVariable String token) {
-        if (service.validateResetToken(token)) return new ResponseEntity<>(HttpStatus.OK);
+        if (service.validateResetToken(token)) {
+            return ResponseEntity.ok("Успешно верифициране на имейла, вече може да се логнете в акаунта си");
+        }
         else return ResponseEntity.badRequest().body("Грешен тоукън за въстановяване на парола");
     }
 

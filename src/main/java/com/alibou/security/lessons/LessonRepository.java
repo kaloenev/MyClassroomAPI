@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     Lesson getLessonByLessonID(int id);
+    List<Lesson> findTop12ByIsDraftFalseAndIsPrivateLessonTrueOrderByPopularityDesc();
 
-    //TODO find a way to remove drafts from results in next 2 queries
-    List<Lesson> findTop12ByOrderByPopularityDesc();
+    List<Lesson> findTop12ByIsDraftFalseAndIsPrivateLessonFalseOrderByPopularityDesc();
 
     @Query("select l from Lesson l where l.isDraft = false and (l.subject = :subject or l.grade = :grade) order by l.popularity DESC")
     List<Lesson> getSimilarLessons(@Param("subject") String subject, @Param("grade") String grade);
@@ -25,6 +25,18 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
             where isLikedByStudent.id = :studentId
             order by termin.dateTime ASC""")
     Page<Lesson> getLessonByIsLikedByStudentOrderByDateTime(@Param("studentId") int studentId, Pageable pagedAndSorted);
+
+    //TODO Add ? instead of params to avoid sql injection
+    @Query("""
+            select l from Lesson l inner join l.termins isLikedByStudent inner join l.termins termin
+            where termin.terminID = :terminId""")
+    Lesson getLessonByTerminId(@Param("terminId") int terminId);
+
+    @Query("""
+            select l from Lesson l inner join l.isLikedByStudent isLikedByStudent
+            where isLikedByStudent.id = :studentId""")
+    List<Lesson> getLessonByIsLikedByStudent(@Param("studentId") int studentId);
+
 
     @Query("SELECT distinct l.subject from Lesson l order by l.subject ASC")
     List<String> getAllSubjects();

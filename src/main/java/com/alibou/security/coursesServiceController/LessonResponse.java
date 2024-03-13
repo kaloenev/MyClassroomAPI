@@ -17,12 +17,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LessonResponse {
+    //TODO Divide this object into 2 diff ones, one for courses, one for lessons
     private int lessonID;
     private String title;
     private String description;
     private String grade;
     private String subject;
     private double price;
+
+    private String upperGrade;
 
     private double pricePerHour;
     private int length;
@@ -120,10 +123,48 @@ public class LessonResponse {
                 if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
                 courseTermin1 = courseTermin;
             }
-            String[] days = courseTermin1.getCourseDays().split(",");
-            pricePerHour = Math.round(lesson.getPrice() / (days.length * weekLength) * 100.0) / 100.0;
+            if (courseTermin1 != null) {
+                String[] days = courseTermin1.getCourseDays().split(",");
+                pricePerHour = Math.round(lesson.getPrice() / (days.length * weekLength) * 100.0) / 100.0;
+            }
         }
         reviewResponses = reviews;
+        Teacher teacher = lesson.getTeacher();
+        teacherResponse = new TeacherResponse(teacher);
+        teacherId = teacherResponse.getId();
+        this.privateLesson = lesson.isPrivateLesson();
+    }
+
+    public LessonResponse(Lesson lesson, CourseTermin courseTermin) {
+        lessonID = lesson.getLessonID();
+        title = lesson.getTitle();
+        description = lesson.getDescription();
+        grade = lesson.getGrade();
+        subject = lesson.getSubject();
+        price = Math.round(lesson.getPrice() * 100.0) / 100.0;
+        length = lesson.getLength();
+        isDraft = lesson.isDraft();
+        studentsUpperBound = lesson.getStudentsUpperBound();
+        rating = Math.round(lesson.getRating() * 100.0) / 100.0;
+        numberOfReviews = lesson.getNumberOfReviews();
+        urlToImage = "http://localhost:8080/api/v1/users/images/" + lesson.getImageLocation();
+        courseTerminRequests = new ArrayList<>();
+        if (lesson.getThemas() != null) {
+            themas = new ArrayList<>();
+            for (var thema : lesson.getThemas()) {
+                themas.add(new ThemaSimpleResponse(thema.getTitle(), thema.getDescription()));
+            }
+        }
+        if (lesson.isHasTermins()) {
+                CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
+                Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
+                        + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
+                courseTerminRequestResponse.setTime(courseTerminRequestResponse.getCourseHours() + " - " + timestamp.toString().substring(11, 16));
+                courseTerminRequests.add(courseTerminRequestResponse);
+                if (weekLength == 0) this.weekLength = courseTermin.getWeekLength();
+            String[] days = courseTermin.getCourseDays().split(",");
+            pricePerHour = Math.round(lesson.getPrice() / (days.length * weekLength) * 100.0) / 100.0;
+        }
         Teacher teacher = lesson.getTeacher();
         teacherResponse = new TeacherResponse(teacher);
         teacherId = teacherResponse.getId();
@@ -136,6 +177,7 @@ public class LessonResponse {
         description = lesson.getDescription();
         grade = lesson.getGrade();
         subject = lesson.getSubject();
+        upperGrade = lesson.getUpperGrade();
         price = Math.round(lesson.getPrice() * 100.0) / 100.0;
         length = lesson.getLength();
         isDraft = lesson.isDraft();

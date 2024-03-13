@@ -79,6 +79,8 @@ public class SecurityConfiguration {
                         "/api/v1/lessons/getCourseFilters",
                         "/api/v1/lessons/getLessonFilters",
                         "/api/v1/lessons/getReviews",
+                        "/api/v1/lessons/images/**",
+                        "/api/v1/users/images/**",
                         "/ws/**",
                         "/app/chat",
                         "/user/**",

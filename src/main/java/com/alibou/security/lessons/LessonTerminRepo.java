@@ -16,6 +16,9 @@ public interface LessonTerminRepo extends JpaRepository<LessonTermin, Integer> {
     List<LessonTermin> getLessonTerminsByStudent_IdAndLessonStatus(@Param("studentId") int studentId,
                                                                    @Param("lessonStatus") LessonStatus lessonStatus);
 
+    @Query("select l from LessonTermin l where l.student.id = :studentId")
+    List<LessonTermin> getLessonTerminsByStudent_Id(@Param("studentId") int studentId);
+
     @Query("select l from LessonTermin l where l.lesson.lessonID = :lessonId")
     List<LessonTermin> getLessonTerminsByLessonID(@Param("lessonId") int lessonId);
 
