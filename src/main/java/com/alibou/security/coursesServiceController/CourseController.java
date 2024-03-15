@@ -594,11 +594,12 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    //TODO Add folders for this and chat files
     @GetMapping("/getResourceFile/{id}")
-    public ResponseEntity<Object> getResourceFile(@PathVariable int id, HttpServletRequest httpRequest) throws IOException {
+    public ResponseEntity<Object> getResourceFile(@PathVariable int id) throws IOException {
         String path;
         try {
-            path = courseService.getResourceFile(httpRequest.getHeader("Authorization"), id);
+            path = courseService.getResourceFile(id);
         } catch (CustomException e) {
             CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());

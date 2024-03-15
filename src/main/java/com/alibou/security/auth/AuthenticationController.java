@@ -62,7 +62,8 @@ public class AuthenticationController {
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
         var emailDetails = EmailDetails.builder().recipient(email).subject("Въстановяване на паролата")
-                .msgBody("Кликнете върху следния линк, за да въстановите паролата си: " + link).build();
+                .msgBody("Кликнете върху следния линк, за да въстановите паролата си: "
+                        + "http://localhost:3000/change-password/" + link).build();
         if (emailService.sendSimpleMail(emailDetails))
             return ResponseEntity.ok().body("Изпратен Ви е имейл с инструкции за въстановяване на паролата");
         else return ResponseEntity.badRequest().body("Грешка при изпращане на имейла, опитайте по-късно");

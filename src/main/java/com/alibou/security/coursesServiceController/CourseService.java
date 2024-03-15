@@ -55,7 +55,7 @@ public class CourseService {
     public static double BOTTOM80PRICE_LESSON;
     public static double DEVIATION_LESSON;
 
-    private EmailService emailService;
+    private final EmailService emailService;
     private final LessonRepository lessonRepository;
 
     private final TerminRepo terminRepo;
@@ -923,6 +923,7 @@ public class CourseService {
         return getCourseTerminsTeacher(token, id);
     }
 
+    //TODO Remove past courses from info (maybe active dates as well>)
     public LessonResponse getCourseInformation(int id, String token) throws CustomException {
         //TODO Check if the teacher has access to the course with id
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
@@ -1199,7 +1200,7 @@ public class CourseService {
                             teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                             lessonTermin.getDate(), lessonTermin.getTime() + " - "
                             + new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16),
-                            teacher.getId());
+                            teacher.getId(), lessonTermin.getTerminID());
                     lessonTerminCounter++;
                     lessonResponse.setLength(lesson.getLength());
                     lessonResponses.add(lessonResponse);
@@ -1219,7 +1220,7 @@ public class CourseService {
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
                         lessonTermin.getDate(), lessonTermin.getTime() + " - "
                         + new Timestamp(lessonTermin.getDateTime().getTime() + lesson.getLength() * 60000L).toString().substring(11, 16),
-                        teacher.getId());
+                        teacher.getId(), lessonTermin.getTerminID());
                 lessonResponse.setLength(lesson.getLength());
                 lessonResponses.add(lessonResponse);
             }
@@ -1249,7 +1250,7 @@ public class CourseService {
                 LessonResponse lessonResponse = new LessonResponse(lesson.getLessonID(), lesson.getImageLocation(),
                         lesson.getTitle(), lesson.isPrivateLesson(),
                         teacher.getFirstname(), teacher.getLastname(), lessonTermin.getLessonStatus().toString(),
-                        lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId());
+                        lessonTermin.getDate(), lessonTermin.getTime(), teacher.getId(), lessonTermin.getTerminID());
 
                 lessonResponses.add(lessonResponse);
             }
@@ -1607,6 +1608,9 @@ public class CourseService {
         Thema thema = themaRepository.getThemaByThemaID(id);
         if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена тема с това id");
         CourseTermin courseTermin = thema.getCourseTermin();
+        if (thema.getAssignment() != null) {
+            throw new CustomException(HttpStatus.CONFLICT, "Вече има качено домашно");
+        }
         List<Student> students = new ArrayList<>();
         Assignment assignment;
         if (courseTermin != null) {
@@ -1643,6 +1647,7 @@ public class CourseService {
         Assignment assignment = assignmentRepo.getAssignmentByAssignmentID(id);
         if (assignment == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерена задача с това id");
 //        List<Student> students = assignment.getStudents();
+        //TODO delete old file from assignment
         assignment.setTitle(assignmentRequest.getTitle());
         assignment.setDescription(assignmentRequest.getDescription());
         assignment.setDueDateTime(Timestamp.valueOf(assignmentRequest.getDate() + " " + assignmentRequest.getTime() + ":00"));
@@ -1716,6 +1721,7 @@ public class CourseService {
                 .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
                 .fileNames(assignment.getAssignmentLocation()).build();
         if (studentSolution != null) {
+            assignmentResponse.setSolutionId(studentSolution.getSolutionID());
             assignmentResponse.setSolutionFileNames(studentSolution.getSolutionFilesLocation());
             List<AssignmentResponse> comments = new ArrayList<>();
             for (Comment comment : studentSolution.getComments()) {
@@ -1887,10 +1893,11 @@ public class CourseService {
         return solutionFile;
     }
 
-        public String getResourceFile(String token, int id) throws CustomException {
-        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
-        if (teacher == null)
-            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        public String getResourceFile(int id) throws CustomException {
+//        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+//        if (teacher == null)
+//            Student student = studentRepository.
+//            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         Thema thema = themaRepository.getThemaByThemaID(id);
         if (thema == null) throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерено решение с това id");
         if (thema.getPresentation() == null)
@@ -1909,10 +1916,10 @@ public class CourseService {
             String status;
             if (solution.isOverdue()) status = "навреме";
             else status = "закъснял";
-            AssignmentResponse assignmentResponse = AssignmentResponse.builder().id(solution.getSolutionID())
+            AssignmentResponse assignmentResponse = AssignmentResponse.builder().solutionId(solution.getSolutionID())
                     .studentName(solution.getName() + " " + solution.getSurname()).time(solution.getTime())
                     .date(solution.getDate()).status(status).commentAmount(solution.getTeacherCommentCount())
-                    .fileNames(solution.getSolutionFilesLocation()).build();
+                    .solutionFileNames(solution.getSolutionFilesLocation()).build();
             solutions.add(assignmentResponse);
         }
         return solutions;

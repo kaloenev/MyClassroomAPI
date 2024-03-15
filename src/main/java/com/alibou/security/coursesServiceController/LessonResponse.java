@@ -63,6 +63,8 @@ public class LessonResponse {
 
     private TeacherResponse teacherResponse;
 
+    private int lessonTerminId;
+
     private boolean isDraft;
 
     private boolean isLikedByStudent;
@@ -206,7 +208,8 @@ public class LessonResponse {
         this.teacherId = teacherId;
     }
 
-    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, String date, String time, int teacherId) {
+    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName, String teacherSurname, String status,
+                          String date, String time, int teacherId, int lessonTerminId) {
         courseTerminRequests = new ArrayList<>();
         this.firstDate = date;
         urlToImage = "http://localhost:8080/api/v1/users/images/" + picture;
@@ -218,6 +221,7 @@ public class LessonResponse {
         this.teacherSurname = teacherSurname;
         this.status = status;
         this.teacherId = teacherId;
+        this.lessonTerminId = lessonTerminId;
     }
 
 //

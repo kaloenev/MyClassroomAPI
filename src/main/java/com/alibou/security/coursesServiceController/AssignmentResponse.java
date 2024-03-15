@@ -16,6 +16,7 @@ public class AssignmentResponse {
     private String teacherName;
     private String description;
     private String fileNames;
+    private int solutionId;
     private String solutionFileNames;
     private String date;
     private String time;

@@ -314,29 +314,17 @@ public class UserController {
             CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
             return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
         }
-//            pathBuilder.append(newFile);
-//        System.out.println("Saved files");
-//        if (pathBuilder.isEmpty()) {
-//            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, "Не сте качили валидни файлове");
-//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-//        }
-//        paths = pathBuilder.toString();
-//        try {
-//            courseService.uploadAssignmentFiles(httpRequest.getHeader("Authorization"), id, paths);
-//        } catch (CustomException e) {
-//            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
-//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-//        }
         return ResponseEntity.ok(newFile.toString());
     }
 
+    //TODO Maybe check if the user has access to that file
     @GetMapping("/getChatFile/{path}")
     public ResponseEntity<Object> getChatFile(@PathVariable String path) throws IOException {
 
         // The file to be downloaded.
         Path file = Paths.get(path);
 
-        // Get the media type of the file
+//         Get the media type of the file
         String contentType = Files.probeContentType(file);
         if (contentType == null) {
             // Use the default media type
@@ -407,6 +395,7 @@ public class UserController {
         return ResponseEntity.ok("http://localhost:8080/api/v1/users/images/" + path);
     }
 
+    //TODO Compress images?
     @GetMapping("/images/**")
     public Resource getImage(HttpServletRequest httpServletRequest) throws CustomException, MalformedURLException {
         String filename = httpServletRequest.getRequestURI()
