@@ -12,6 +12,7 @@ import java.util.List;
 public class AssignmentResponse {
     private int id;
     private String title;
+    private String image;
     private String studentName;
     private String teacherName;
     private String description;

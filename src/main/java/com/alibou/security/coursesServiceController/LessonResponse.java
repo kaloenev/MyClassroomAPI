@@ -117,6 +117,9 @@ public class LessonResponse {
             List<CourseTermin> courseTermins = lesson.getCourseTermins();
             CourseTermin courseTermin1 = null;
             for (CourseTermin courseTermin : courseTermins) {
+                if (courseTermin.getDateTime().before(new Timestamp(System.currentTimeMillis()))) {
+                    continue;
+                }
                 CourseTerminRequestResponse courseTerminRequestResponse = new CourseTerminRequestResponse(courseTermin);
                 Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(courseTermin.getDateTime().getTime()
                         + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());

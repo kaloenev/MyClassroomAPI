@@ -10,6 +10,7 @@ import com.alibou.security.user.*;
 import com.alibou.security.userFunctions.CalendarResponse;
 import com.alibou.security.userFunctions.UserProfileResponse;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Not;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -947,6 +948,10 @@ public class CourseService {
                 for (LessonTermin lessonTermin : lessonTermins) {
                     //TODO Maybe add a month check as well
                     //TODO Maybe Iterator would be faster
+                    //TODO Maybe filter this at database
+                    if (lessonTermin.getDateTime().before(new Timestamp(System.currentTimeMillis()))) {
+                        continue;
+                    }
                     int currentDayOfMonth = lessonTermin.getDateTime().toLocalDateTime().getDayOfMonth();
                     Timestamp timestamp = Timestamp.valueOf(Instant.ofEpochMilli(lessonTermin.getDateTime().getTime()
                             + lesson.getLength() * 60000L).atZone(ZoneId.systemDefault()).toLocalDateTime());
@@ -1055,6 +1060,7 @@ public class CourseService {
                         .build();
             }
             themas.add(themaResponse);
+            //TODO Maybe add link to getPictureLocation
             //TODO fix all calls to database that happen more than once for the same stuff
             String teacherName = null;
             if (isTeacher && lessonTermin.getStudent() != null) {
@@ -1717,9 +1723,9 @@ public class CourseService {
                 studentSolution = solution;
             }
         }
-        AssignmentResponse assignmentResponse = AssignmentResponse.builder().title(assignment.getTitle())
-                .description(assignment.getDescription()).date(assignment.getDate()).time(assignment.getTime())
-                .fileNames(assignment.getAssignmentLocation()).build();
+        AssignmentResponse assignmentResponse = AssignmentResponse.builder().id(assignment.getAssignmentID())
+                .title(assignment.getTitle()).description(assignment.getDescription()).date(assignment.getDate())
+                .time(assignment.getTime()).fileNames(assignment.getAssignmentLocation()).build();
         if (studentSolution != null) {
             assignmentResponse.setSolutionId(studentSolution.getSolutionID());
             assignmentResponse.setSolutionFileNames(studentSolution.getSolutionFilesLocation());
@@ -1916,10 +1922,18 @@ public class CourseService {
             String status;
             if (solution.isOverdue()) status = "навреме";
             else status = "закъснял";
+            //TODO Change architecture solution must have student reference
+            Student searchedStudent = null;
+            for (Student student : assignment.getStudents()) {
+                if ((student.getFirstname() + student.getLastname()).equals(solution.getName() + solution.getSurname())) {
+                    searchedStudent = student;
+                }
+            }
             AssignmentResponse assignmentResponse = AssignmentResponse.builder().solutionId(solution.getSolutionID())
                     .studentName(solution.getName() + " " + solution.getSurname()).time(solution.getTime())
                     .date(solution.getDate()).status(status).commentAmount(solution.getTeacherCommentCount())
-                    .solutionFileNames(solution.getSolutionFilesLocation()).build();
+                    .solutionFileNames(solution.getSolutionFilesLocation())
+                    .image("http://localhost:8080/api/v1/users/images/" + searchedStudent.getPictureLocation()).build();
             solutions.add(assignmentResponse);
         }
         return solutions;
@@ -1949,7 +1963,8 @@ public class CourseService {
         for (Comment comment : comments) {
             AssignmentResponse assignmentResponse = AssignmentResponse.builder().date(comment.getDate())
                     .time(comment.getTime()).teacherName(teacher.getFirstname() + " " + teacher.getLastname())
-                    .comment(comment.getActualComment()).id(comment.getCommentID()).build();
+                    .comment(comment.getActualComment()).id(comment.getCommentID())
+                    .image("http://localhost:8080/api/v1/users/images/" + teacher.getPictureLocation()).build();
             assignmentResponses.add(assignmentResponse);
         }
         return assignmentResponses;
@@ -2021,5 +2036,42 @@ public class CourseService {
                     TimeUnit.MILLISECONDS);
         }
         return meetingId;
+    }
+
+    public void deleteComment(String token, int id) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
+        if (teacher == null)
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        commentRepo.deleteById(id);
+    }
+
+    public List<NotificationResponse> getNotifications(String token) throws CustomException {
+        User user = userRepository.findUserByTokens_token(token);
+        if (user == null) {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        }
+        List<NotificationResponse> notificationResponses = new ArrayList<>();
+        for (Notification notification : user.getNotifications()) {
+            NotificationResponse notificationResponse = NotificationResponse.builder().lesson(notification.getLesson())
+                    .time(notification.getTime()).date(notification.getDate()).content(notification.getMessage())
+                    .isChat(false).build();
+            notificationResponses.add(notificationResponse);
+        }
+        return notificationResponses;
+    }
+
+    public List<PaymentResponse> getPayments(String token) throws CustomException {
+        Teacher teacher = teacherRepository.findTeacherByTokens_token(token);
+        if (teacher == null) {
+            throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
+        }
+        List<PaymentResponse> paymentResponses = new ArrayList<>();
+        for (Payment payment : teacher.getPayments()) {
+            PaymentResponse paymentResponse = PaymentResponse.builder().lesson(payment.getLesson())
+                    .time(payment.getTime()).date(payment.getDate()).number(payment.getNumber())
+                    .paymentStatus(payment.getPaymentStatus()).amount(payment.getAmount()).build();
+            paymentResponses.add(paymentResponse);
+        }
+        return paymentResponses;
     }
 }

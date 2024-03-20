@@ -22,8 +22,9 @@ public class Payment {
     private Integer paymentID;
     private Timestamp dateTime;
     private String number;
-    @Enumerated
-    private PaymentStatus paymentStatus;
+    private int amount;
+    private String paymentStatus;
+    private String lesson;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     @ToString.Exclude
@@ -32,6 +33,14 @@ public class Payment {
     @JoinColumn(name = "student_id")
     @ToString.Exclude
     private Student student;
+
+    public String getTime() {
+        return dateTime.toString().substring(11, 16);
+    }
+
+    public String getDate() {
+        return dateTime.toString().substring(0, 10);
+    }
 
     @Override
     public boolean equals(Object o) {

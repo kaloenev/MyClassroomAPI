@@ -484,6 +484,38 @@ public class CourseController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/deleteComment/{id}")
+    public ResponseEntity<Object> deleteComment(@PathVariable int id, HttpServletRequest httpRequest) {
+        try {
+            courseService.deleteComment(httpRequest.getHeader("Authorization"), id);
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/getNotifications")
+    public ResponseEntity<Object> getNotifications(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getNotifications(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
+    //TODO Check statuses in controllers
+    @GetMapping("/getPayments")
+    public ResponseEntity<Object> getPayments(HttpServletRequest httpRequest) {
+        try {
+            return ResponseEntity.ok(courseService.getPayments(httpRequest.getHeader("Authorization")));
+        } catch (CustomException e) {
+            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
+            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
+        }
+    }
+
     @PostMapping("/deleteSolution/{id}")
     public ResponseEntity<Object> deleteSolution(@PathVariable int id, HttpServletRequest httpRequest) {
         try {

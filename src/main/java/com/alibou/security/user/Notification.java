@@ -23,10 +23,20 @@ public class Notification {
     private Timestamp dateTime;
     private String message;
     private boolean isChat;
+    private String lesson;
+    //TODO Maybe add lesson link
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @ToString.Exclude
     private User user;
+
+    public String getTime() {
+        return dateTime.toString().substring(11, 16);
+    }
+
+    public String getDate() {
+        return dateTime.toString().substring(0, 10);
+    }
 
     @Override
     public boolean equals(Object o) {
