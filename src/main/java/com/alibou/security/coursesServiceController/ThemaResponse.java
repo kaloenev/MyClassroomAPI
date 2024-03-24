@@ -10,7 +10,6 @@ import lombok.*;
 public class ThemaResponse {
     protected Integer themaID;
     protected String linkToRecording;
-    protected String linkToClassroom;
     protected String presentation;
     private int assignmentId;
     protected int studentsNumber;

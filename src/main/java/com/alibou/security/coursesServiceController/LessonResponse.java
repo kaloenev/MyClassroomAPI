@@ -59,6 +59,8 @@ public class LessonResponse {
     private String teacherName;
     private String teacherSurname;
 
+    private String teacherPicture;
+
     private int teacherId;
 
     private TeacherResponse teacherResponse;
@@ -68,6 +70,8 @@ public class LessonResponse {
     private boolean isDraft;
 
     private boolean isLikedByStudent;
+
+    private int myReview;
 
 
     public LessonResponse(Lesson lesson, String dateTime, String time, int numberOfStudents) {
@@ -198,7 +202,9 @@ public class LessonResponse {
         this.privateLesson = lesson.isPrivateLesson();
     }
 
-    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName, String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse, int teacherId) {
+    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName,
+                          String teacherSurname, String status, CourseTerminRequestResponse courseTerminRequestResponse,
+                          int teacherId, String teacherPicture) {
         courseTerminRequests = new ArrayList<>();
         courseTerminRequests.add(courseTerminRequestResponse);
         this.urlToImage = "http://localhost:8080/api/v1/users/images/" + picture;
@@ -208,11 +214,13 @@ public class LessonResponse {
         this.teacherName = teacherName;
         this.teacherSurname = teacherSurname;
         this.status = status;
+        this.teacherPicture = "http://localhost:8080/api/v1/users/images/" + teacherPicture;
         this.teacherId = teacherId;
     }
 
-    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName, String teacherSurname, String status,
-                          String date, String time, int teacherId, int lessonTerminId) {
+    public LessonResponse(int lessonID, String picture, String title, boolean privateLesson, String teacherName,
+                          String teacherSurname, String status, String date, String time, int teacherId,
+                          int lessonTerminId, String teacherPicture) {
         courseTerminRequests = new ArrayList<>();
         this.firstDate = date;
         urlToImage = "http://localhost:8080/api/v1/users/images/" + picture;
@@ -224,6 +232,7 @@ public class LessonResponse {
         this.teacherSurname = teacherSurname;
         this.status = status;
         this.teacherId = teacherId;
+        this.teacherPicture = "http://localhost:8080/api/v1/users/images/" + teacherPicture;
         this.lessonTerminId = lessonTerminId;
     }
 

@@ -18,6 +18,7 @@ public class LessonTerminResponse {
     private String time;
     private String dayOfTheWeek;
     private String status;
+    private String imageLocation;
 
     public LessonTerminResponse(int id, String date, String time, int length) {
         this.lessonTerminId = id;

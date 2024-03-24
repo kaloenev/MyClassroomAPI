@@ -24,7 +24,7 @@ public class Notification {
     private String message;
     private boolean isChat;
     private String lesson;
-    //TODO Maybe add lesson link
+    private String link;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @ToString.Exclude

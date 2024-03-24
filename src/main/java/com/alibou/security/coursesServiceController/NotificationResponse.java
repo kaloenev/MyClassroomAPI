@@ -1,14 +1,12 @@
 package com.alibou.security.coursesServiceController;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Getter
+@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class NotificationResponse {
     private String recipientId;
     private String content;
@@ -16,4 +14,5 @@ public class NotificationResponse {
     private String time;
     private boolean isChat;
     private String lesson;
+    private String link;
 }

@@ -16,12 +16,14 @@ public class ClassroomPageResponse {
     private int teacherId;
     private String lessonDescription;
     private String teacherName;
+    private MeetingMessageResponse meetingMessageResponse;
     private int courseTerminId;
     private String startDate;
     private String endDate;
     private int[] courseDaysNumbers;
     private String courseHours;
     private int enrolledStudents;
+    private String teacherPicture;
     private List<UserProfileResponse> students = new ArrayList<>();
     private List<ThemaResponse> themas = new ArrayList<>();
 }

@@ -42,17 +42,4 @@ public class ChatController {
                     "Could not send message");
         }
     }
-
-    //TODO For testing only, pls remove
-//    @GetMapping("/sendMessage/{id}&&{recipId}&&{content}")
-//    public ResponseEntity<Object> sendMessage(@PathVariable int id, @PathVariable int recipId, @PathVariable String content) {
-//        try {
-//            userService.sendMessage(id, content, recipId, false);
-//        } catch (CustomException e) {
-//            e.printStackTrace();
-//            CustomWarning warning = new CustomWarning(e.getStatus(), e.getMessage());
-//            return new ResponseEntity<>(warning, new HttpHeaders(), warning.getStatus());
-//        }
-//        return new ResponseEntity<>(HttpStatus.OK);
-//    }
 }

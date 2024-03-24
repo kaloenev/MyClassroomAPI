@@ -89,7 +89,7 @@ public class AuthenticationService {
         emailDetails.setSubject("Потвърждение на регистрация");
         emailDetails.setMsgBody("Още не сме добавили линка във фронтенда да ти потвърждава имейла!");
         emailService.sendSimpleMail(emailDetails);
-        //TODO Add email verification
+        //TODO Add email verification maybe directly to api /resetPassword/validateToken/{token}
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
 //                .refreshToken(refreshToken)

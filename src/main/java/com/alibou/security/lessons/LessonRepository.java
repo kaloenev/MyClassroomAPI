@@ -50,6 +50,9 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     @Query("SELECT MIN(price) from Lesson")
     int getMinPrice();
 
+    @Query("select l.imageLocation from Lesson l where l.lessonID = ?1")
+    String getImageLocationByLessonID(int id);
+
     @Query("SELECT l.price from Lesson l where l.isPrivateLesson = false")
     List<Double> getCoursePrices();
 

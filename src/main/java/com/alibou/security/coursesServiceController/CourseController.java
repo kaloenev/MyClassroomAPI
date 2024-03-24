@@ -149,7 +149,6 @@ public class CourseController {
 
     @GetMapping("/getCourseImages/{subject}")
     public ResponseEntity<Object> getCourseImages(@PathVariable String subject) {
-        //TODO Add authentication?
         try {
             return ResponseEntity.ok(courseService.getImagesBySubject(subject));
         } catch (CustomException e) {

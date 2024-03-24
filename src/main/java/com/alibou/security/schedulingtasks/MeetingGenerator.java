@@ -2,6 +2,7 @@ package com.alibou.security.schedulingtasks;
 
 import com.alibou.security.lessons.LessonTermin;
 import com.alibou.security.lessons.LessonTerminRepo;
+import com.alibou.security.user.NotificationRepo;
 import com.alibou.security.user.StudentRepository;
 import com.alibou.security.user.TeacherRepository;
 import com.alibou.security.user.UserRepository;
@@ -23,12 +24,15 @@ public class MeetingGenerator implements Runnable{
 
     private final SimpMessagingTemplate messagingTemplate;
 
+    private final NotificationRepo notificationRepo;
+
     public MeetingGenerator(LessonTermin termin, LessonTerminRepo lessonTerminRepo, UserRepository userRepository,
-                            SimpMessagingTemplate messagingTemplate) {
+                            SimpMessagingTemplate messagingTemplate, NotificationRepo notificationRepo) {
         this.termin = termin;
         this.lessonTerminRepo = lessonTerminRepo;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.notificationRepo = notificationRepo;
     }
 
     @Override
@@ -42,7 +46,8 @@ public class MeetingGenerator implements Runnable{
         studentToken.add(userRepository.findLastToken(termin.getStudent().getId()).get(0).getToken());
         NotificationSenderTask notificationTask = new NotificationSenderTask(messagingTemplate,
                 "Вашият урок започва след 5 минути, учителят вече създаде мийтинга. \n" +
-                        "Кликнете линка, за да се присъедините:" + meetingId, studentToken, termin.getLesson().getTitle());
+                        "Кликнете линка, за да се присъедините", studentToken, termin.getLesson().getTitle(),
+                meetingId, notificationRepo, userRepository);
         service.schedule(notificationTask, termin.getDateTime().getTime() - System.currentTimeMillis(),
                 TimeUnit.MILLISECONDS);
     }

@@ -30,6 +30,7 @@ public class CourseTerminRequestResponse {
     private String lessonStatus;
 
     private String time;
+    private String imageLocation;
 
     public CourseTerminRequestResponse(CourseTermin courseTermin) {
         courseTerminId = courseTermin.getTerminID();
@@ -48,7 +49,8 @@ public class CourseTerminRequestResponse {
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
     }
 
-    public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus, int length) {
+    public CourseTerminRequestResponse(CourseTermin courseTermin, LessonStatus lessonStatus, int length,
+                                       String pictureLocation) {
         courseTerminId = courseTermin.getTerminID();
         startDate = courseTermin.getDate();
         String[] daysString = courseTermin.getCourseDays().replaceFirst("\\[", "").replaceFirst("]", "")
@@ -65,6 +67,6 @@ public class CourseTerminRequestResponse {
         studentsUpperBound = courseTermin.getStudentsUpperBound();
         numberOfStudents = studentsUpperBound - courseTermin.getPlacesRemaining();
         endDate = (new Timestamp(courseTermin.getDateTime().getTime() + (long) courseTermin.getWeekLength() * 7 * 86400000).toString()).substring(0, 10);
-        this.lessonStatus = lessonStatus.name();
+        this.lessonStatus = lessonStatus.toString();
     }
 }
