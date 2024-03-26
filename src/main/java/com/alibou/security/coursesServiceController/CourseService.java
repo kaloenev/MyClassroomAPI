@@ -315,6 +315,7 @@ public class CourseService {
             throw new CustomException(HttpStatus.CONFLICT, "Моля добавете дати или запазете курса като чернова");
     }
 
+    //TODO Edni i sushti dati da ne mogat da se zapishat
     public void editCourse(String token, int lessonID, CreateCourseRequest courseRequest, boolean isDraft, boolean isPrivateLesson) throws CustomException {
         // TODO Check if the teacher has access to the course with lessonID
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
@@ -621,7 +622,7 @@ public class CourseService {
         }
 
         List<ReviewResponse> reviewResponses = new ArrayList<>();
-        for (Review review : reviewRepo.getDistinct3ByOrderByRatingDescMessageDesc()) {
+        for (Review review : reviewRepo.getDistinct12ByOrderByRatingDescMessageDesc()) {
             ReviewResponse reviewResponse = new ReviewResponse(review);
             reviewResponses.add(reviewResponse);
         }
@@ -949,6 +950,7 @@ public class CourseService {
         return getCourseTerminsTeacher(token, id);
     }
 
+    //TODO Test drafts somehow get send as non-drafts
     //TODO Remove past courses from info (maybe active dates as well>)
     public LessonResponse getCourseInformation(int id, String token) throws CustomException {
         //TODO Check if the teacher has access to the course with id
@@ -2074,13 +2076,14 @@ public class CourseService {
         BOTTOM80PRICE_LESSON = DEVIATION_LESSON * (0.67) + average;
     }
 
+    //TODO Schedule meeting link destruction/removal (mainly for courses)
     public MeetingMessageResponse generateMeeting(int id, String token) throws CustomException {
         Teacher teacher = teacherRepository.findTeacherByTokens_token(token.substring(7));
         if (teacher == null)
             throw new CustomException(HttpStatus.NOT_FOUND, "Няма намерен учител с този тоукън, моля логнете се");
         LessonTermin termin = lessonTerminRepo.getLessonTerminByTerminID(id);
         CourseTermin courseTermin;
-        String meetingId = "meet.jit.si/" + UUID.randomUUID().toString();
+        String meetingId = "https://meet.jit.si/" + UUID.randomUUID().toString();
         if  (termin == null) {
             courseTermin = courseTerminRepo.getCourseTerminByTerminID(id);
             if (courseTermin == null) {
@@ -2134,7 +2137,7 @@ public class CourseService {
         for (Notification notification : user.getNotifications()) {
             NotificationResponse notificationResponse = NotificationResponse.builder().lesson(notification.getLesson())
                     .time(notification.getTime()).date(notification.getDate()).content(notification.getMessage())
-                    .isChat(false).build();
+                    .isChat(false).link(notification.getLink()).build();
             notificationResponses.add(notificationResponse);
         }
         return notificationResponses;

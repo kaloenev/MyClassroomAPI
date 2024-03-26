@@ -373,7 +373,7 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/uploadImageTeacher")
+    @PostMapping("/uploadTeacherImage")
     public ResponseEntity<Object> uploadImage(@RequestParam("file") MultipartFile[] requestFiles,
                                               HttpServletRequest httpRequest) {
         String path;

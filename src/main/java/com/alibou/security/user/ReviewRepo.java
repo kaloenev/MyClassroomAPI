@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface ReviewRepo extends JpaRepository<Review, Integer> {
-    List<Review> getDistinct3ByOrderByRatingDescMessageDesc();
+    List<Review> getDistinct12ByOrderByRatingDescMessageDesc();
 
     Page<Review> getByLesson_lessonID(int id, Pageable pageable);
 
